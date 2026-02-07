@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Ma Collection Vinyles</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Ma Collection Vinyles</h1>
+            <div class="header-actions">
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="Rechercher artiste, album, label...">
+                </div>
+                <button id="addBtn" class="btn btn-primary">+ Ajouter</button>
+                <label class="btn btn-secondary btn-import">
+                    Importer CSV
+                    <input type="file" id="csvInput" accept=".csv" hidden>
+                </label>
+                <button id="bulkCoverBtn" class="btn btn-secondary" title="Chercher automatiquement les pochettes manquantes">🔍 Pochettes auto</button>
+                <button id="exportBtn" class="btn btn-secondary" title="Exporter toutes les données (JSON)">💾 JSON</button>
+                <button id="exportCsvBtn" class="btn btn-secondary" title="Exporter en CSV">💾 CSV</button>
+                <label class="btn btn-secondary btn-import" title="Importer des données (JSON ou CSV)">
+                    📂 Import
+                    <input type="file" id="jsonImport" accept=".json" hidden>
+                </label>
+                <button id="bulkDeleteBtn" class="btn btn-danger hidden">Supprimer la sélection</button>
+            </div>
+            <div class="stats" id="stats"></div>
+        </header>
+
+        <div class="filters" id="filtersBar">
+            <select id="filterCategorie">
+                <option value="">Toutes catégories</option>
+            </select>
+            <select id="filterGoût">
+                <option value="">Tous goûts</option>
+            </select>
+            <select id="filterEnergie">
+                <option value="">Toutes énergies</option>
+            </select>
+            <select id="filterClassé">
+                <option value="">Classé ?</option>
+                <option value="Oui">Oui</option>
+                <option value="Non">Non</option>
+            </select>
+            <select id="sortBy">
+                <option value="artiste">Tri: Artiste</option>
+                <option value="album">Tri: Album</option>
+                <option value="année">Tri: Année</option>
+                <option value="goût">Tri: Goût</option>
+                <option value="audio">Tri: Audio</option>
+                <option value="energie">Tri: Énergie</option>
+                <option value="prix">Tri: Prix</option>
+                <option value="nb">Tri: Nb écoutes</option>
+                <option value="dateAjout">Tri: Date ajout</option>
+            </select>
+            <button id="sortDir" class="btn btn-small" title="Inverser le tri">↑</button>
+            <div class="view-toggle">
+                <button id="viewTable" class="btn btn-small view-btn" title="Vue tableau">☰</button>
+                <button id="viewGallery" class="btn btn-small view-btn active" title="Vue galerie">▦</button>
+            </div>
+        </div>
+
+        <div id="galleryView" class="gallery hidden"></div>
+
+        <div class="table-wrapper" id="tableView">
+            <table id="vinylTable" class="vinyl-table">
+                <thead>
+                    <tr>
+                        <th class="col-center col-check"><input type="checkbox" id="selectAll" title="Tout sélectionner"></th>
+                        <th>Catégorie</th>
+                        <th data-sort="classé" class="col-center">Classé</th>
+                        <th data-sort="artiste">Artiste</th>
+                        <th data-sort="album">Album</th>
+                        <th data-sort="année" class="col-center">Année</th>
+                        <th>Label</th>
+                        <th>Réf.</th>
+                        <th data-sort="goût">Goût</th>
+                        <th data-sort="audio">Audio</th>
+                        <th data-sort="energie">Énergie</th>
+                        <th data-sort="nb" class="col-center">Nb</th>
+                        <th data-sort="prix">Prix</th>
+                        <th>Acheté</th>
+                        <th>Commentaire</th>
+                    </tr>
+                </thead>
+                <tbody id="vinylBody"></tbody>
+            </table>
+        </div>
+
+        <div id="emptyState" class="empty-state hidden">
+            <p>Aucun vinyle. Commencez par en ajouter un !</p>
+        </div>
+
+        <!-- Modal ajout/édition -->
+        <div id="modal" class="modal hidden">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitle">Ajouter un vinyle</h2>
+                    <button id="modalClose" class="btn-close">&times;</button>
+                </div>
+                <form id="vinylForm">
+                    <div class="form-top-row">
+                        <div class="cover-col">
+                            <div class="cover-zone" id="coverZone" title="Cliquer pour ajouter/modifier l'URL de la pochette">
+                                <img id="coverImg" src="" alt="" class="hidden">
+                                <span id="coverPlaceholder" class="cover-placeholder">+ Photo</span>
+                            </div>
+                            <input type="text" id="coverUrl" class="cover-url-input hidden" placeholder="URL de la pochette">
+                            <div class="cover-actions">
+                                <button type="button" id="coverSearchBtn" class="btn btn-small btn-discogs" title="Chercher la pochette automatiquement">🔍 Pochette</button>
+                                <button type="button" id="coverUrlBtn" class="btn btn-small btn-discogs" title="Saisir une URL d'image manuellement">🔗 URL</button>
+                            </div>
+                        </div>
+                        <div class="form-top-fields">
+                            <div class="form-group">
+                                <label for="artiste">Artiste *</label>
+                                <input type="text" id="artiste" name="artiste" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="album">Album *</label>
+                                <input type="text" id="album" name="album" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="année">Année</label>
+                                <input type="number" id="année" name="année" min="1900" max="2030">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label>Catégorie(s)</label>
+                            <div class="checkbox-group" id="categorieGroup">
+                                <label><input type="checkbox" name="categorie" value="Jazz"> Jazz</label>
+                                <label><input type="checkbox" name="categorie" value="Jazz TBM"> Jazz TBM</label>
+                                <label><input type="checkbox" name="categorie" value="Jazz Eighty Eight's"> Jazz Eighty Eight's</label>
+                                <label><input type="checkbox" name="categorie" value="Pop / Rock"> Pop / Rock</label>
+                                <label><input type="checkbox" name="categorie" value="Afrique"> Afrique</label>
+                                <label><input type="checkbox" name="categorie" value="Brésil"> Brésil</label>
+                                <label><input type="checkbox" name="categorie" value="Latin"> Latin</label>
+                                <label><input type="checkbox" name="categorie" value="OST"> OST</label>
+                                <label><input type="checkbox" name="categorie" value="Blues"> Blues</label>
+                                <label><input type="checkbox" name="categorie" value="Electronique"> Electronique</label>
+                                <label><input type="checkbox" name="categorie" value="Classique"> Classique</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="classé">Classé</label>
+                            <select id="classé" name="classé">
+                                <option value="Non">Non</option>
+                                <option value="Oui">Oui</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="label">Label</label>
+                            <input type="text" id="label" name="label">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="référence">Référence</label>
+                            <input type="text" id="référence" name="référence">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="goût">Goût</label>
+                            <select id="goût" name="goût">
+                                <option value="">—</option>
+                                <option value="0">0 – Déteste – Achat raté</option>
+                                <option value="1">1 – Tolère – peu de plaisir</option>
+                                <option value="2">2 – Apprécie – mais pas souvent</option>
+                                <option value="3">3 – Aime – plaisir occasionnel</option>
+                                <option value="4">4 – Aime – sympa régulièrement</option>
+                                <option value="5">5 – Adore – vraiment excellent</option>
+                                <option value="6">6 – Vibre – frissons, jamais lassé</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="audio">Audio</label>
+                            <select id="audio" name="audio">
+                                <option value="">—</option>
+                                <option value="3">3 – Moyen, limité</option>
+                                <option value="4">4 – Correct</option>
+                                <option value="5">5 – Bon équilibre</option>
+                                <option value="6">6 – Très bon rendu</option>
+                                <option value="7">7 – Excellent détail</option>
+                                <option value="8">8 – Superbe immersion</option>
+                                <option value="9">9 – Profond & détaillé</option>
+                                <option value="10">10 – Exceptionnel</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="energie">Énergie</label>
+                            <select id="energie" name="energie">
+                                <option value="">—</option>
+                                <option value="1">1 – Très doux / Introspectif</option>
+                                <option value="2">2 – Doux / Ambiance</option>
+                                <option value="3">3 – Modéré / Groovy</option>
+                                <option value="4">4 – Énergique / Dansant</option>
+                                <option value="5">5 – Intense / Expressif</option>
+                                <option value="6">6 – Très énervé / Explosif</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nb">Nb écoutes</label>
+                            <input type="number" id="nb" name="nb" min="0" value="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="prix">Prix (€)</label>
+                            <input type="number" id="prix" name="prix" min="0" step="0.01">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="acheté">Acheté</label>
+                            <input type="text" id="acheté" name="acheté" placeholder="Ex: Discogs, Fnac...">
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="commentaire">Commentaire</label>
+                            <textarea id="commentaire" name="commentaire" rows="3"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="deleteBtn" class="btn btn-danger hidden">Supprimer</button>
+                        <div class="form-actions-right">
+                            <button type="button" id="cancelBtn" class="btn btn-secondary">Annuler</button>
+                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- fin app -->
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
