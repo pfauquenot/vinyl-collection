@@ -226,21 +226,15 @@ function promptDiscogsToken() {
 }
 
 async function discogsFetch(fullUrl) {
-    // When served via server.py (localhost), route through local proxy
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-        const prefix = 'https://api.discogs.com/';
-        if (fullUrl.startsWith(prefix)) {
-            return fetch('/api/discogs/' + fullUrl.slice(prefix.length));
-        }
-    }
-    // Direct fetch (works from hosted http/https with CORS)
     if (location.protocol === 'file:') {
         throw new Error(
-            'Discogs nécessite le serveur local.\n' +
-            'Lancez : python3 server.py\n' +
+            'Discogs nécessite un serveur local.\n' +
+            'Lancez dans le Terminal :\n' +
+            '  python3 -m http.server 8000\n' +
             'puis ouvrez http://localhost:8000'
         );
     }
+    // Direct fetch — Discogs API supports CORS from http/https origins
     return fetch(fullUrl);
 }
 
