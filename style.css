@@ -594,6 +594,108 @@ header h1 {
     pointer-events: none;
 }
 
+.btn-discogs-enrich {
+    width: 160px;
+    margin-top: 6px;
+    text-align: center;
+    background: #333;
+    color: #fff;
+    border: 1px solid #333;
+    font-size: 0.8rem !important;
+    padding: 7px 4px !important;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-discogs-enrich:hover {
+    background: #555;
+    border-color: #555;
+}
+
+.btn-discogs-enrich.searching {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.discogs-results {
+    position: absolute;
+    left: 0;
+    top: 100%;
+    margin-top: 8px;
+    z-index: 10;
+    width: 380px;
+    max-height: 420px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px;
+}
+
+.discogs-result-item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 8px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background 0.1s;
+}
+
+.discogs-result-item:hover {
+    background: var(--accent-light);
+}
+
+.discogs-result-item.searching {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.discogs-result-thumb {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: var(--bg-input);
+    flex-shrink: 0;
+}
+
+.discogs-result-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.discogs-result-artist {
+    font-weight: 600;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+}
+
+.discogs-result-album {
+    font-size: 0.75rem;
+    color: var(--accent);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.discogs-result-meta {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+}
+
 .btn-secondary.searching {
     opacity: 0.7;
     pointer-events: none;

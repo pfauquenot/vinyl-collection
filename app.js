@@ -199,6 +199,274 @@ coverSearchBtn.addEventListener('click', (e) => {
     searchCoverArt();
 });
 
+// === Discogs enrichment ===
+const discogsEnrichBtn = document.getElementById('discogsEnrichBtn');
+
+function getDiscogsToken() {
+    return localStorage.getItem('discogsToken') || '';
+}
+
+function setDiscogsToken(token) {
+    localStorage.setItem('discogsToken', token.trim());
+}
+
+function promptDiscogsToken() {
+    const current = getDiscogsToken();
+    const token = prompt(
+        'Token Discogs requis.\n\n' +
+        '1. Allez sur https://www.discogs.com/settings/developers\n' +
+        '2. Cliquez "Generate new token"\n' +
+        '3. Collez le token ci-dessous :',
+        current
+    );
+    if (token === null) return null; // cancelled
+    if (!token.trim()) return null;
+    setDiscogsToken(token);
+    return token.trim();
+}
+
+async function discogsGet(url) {
+    const token = getDiscogsToken();
+    const sep = url.includes('?') ? '&' : '?';
+    const r = await fetch(url + sep + 'token=' + encodeURIComponent(token), {
+        headers: { 'User-Agent': 'VinylCollectionApp/1.0' }
+    });
+    if (r.status === 401 || r.status === 403) {
+        throw new Error('Token Discogs invalide ou expiré.');
+    }
+    if (r.status === 429) {
+        // rate limited — wait and retry once
+        await new Promise(res => setTimeout(res, 3000));
+        const r2 = await fetch(url + sep + 'token=' + encodeURIComponent(token), {
+            headers: { 'User-Agent': 'VinylCollectionApp/1.0' }
+        });
+        if (!r2.ok) throw new Error('Trop de requêtes Discogs. Réessayez dans quelques secondes.');
+        return r2.json();
+    }
+    if (!r.ok) throw new Error('Erreur Discogs (HTTP ' + r.status + ')');
+    return r.json();
+}
+
+// Map Discogs genres/styles to app categories
+const DISCOGS_CATEGORY_MAP = {
+    'jazz': 'Jazz',
+    'rock': 'Pop / Rock',
+    'pop': 'Pop / Rock',
+    'indie rock': 'Pop / Rock',
+    'punk': 'Pop / Rock',
+    'new wave': 'Pop / Rock',
+    'electronic': 'Electronique',
+    'electro': 'Electronique',
+    'house': 'Electronique',
+    'techno': 'Electronique',
+    'ambient': 'Electronique',
+    'synth-pop': 'Electronique',
+    'blues': 'Blues',
+    'classical': 'Classique',
+    'baroque': 'Classique',
+    'romantic': 'Classique',
+    'latin': 'Latin',
+    'salsa': 'Latin',
+    'bossa nova': 'Latin',
+    'cumbia': 'Latin',
+    'bossanova': 'Latin',
+    'samba': 'Brésil',
+    'mpb': 'Brésil',
+    'brazilian': 'Brésil',
+    'afrobeat': 'Afrique',
+    'african': 'Afrique',
+    'highlife': 'Afrique',
+    'soukous': 'Afrique',
+    'soundtrack': 'OST',
+    'score': 'OST',
+    'stage & screen': 'OST',
+};
+
+function mapDiscogsCategories(genres, styles) {
+    const all = [...(genres || []), ...(styles || [])].map(s => s.toLowerCase());
+    const mapped = new Set();
+    for (const tag of all) {
+        if (DISCOGS_CATEGORY_MAP[tag]) {
+            mapped.add(DISCOGS_CATEGORY_MAP[tag]);
+        }
+    }
+    return [...mapped];
+}
+
+async function enrichFromDiscogs() {
+    let token = getDiscogsToken();
+    if (!token) {
+        token = promptDiscogsToken();
+        if (!token) return;
+    }
+
+    const artiste = document.getElementById('artiste').value.trim();
+    const album = document.getElementById('album').value.trim();
+
+    if (!artiste && !album) {
+        alert('Remplissez au moins le champ Artiste ou Album.');
+        return;
+    }
+
+    discogsEnrichBtn.textContent = '⏳ Recherche…';
+    discogsEnrichBtn.classList.add('searching');
+
+    // Remove previous Discogs results
+    const oldResults = document.querySelector('.discogs-results');
+    if (oldResults) oldResults.remove();
+
+    try {
+        const query = [artiste, album].filter(Boolean).join(' ');
+        const data = await discogsGet(
+            'https://api.discogs.com/database/search?type=release&per_page=8&q=' +
+            encodeURIComponent(query)
+        );
+
+        const results = (data.results || []).filter(r => r.id);
+
+        if (results.length === 0) {
+            alert('Aucun résultat Discogs pour cette recherche.');
+            return;
+        }
+
+        // If artist AND album filled, try auto-pick best match
+        if (artiste && album && results.length > 0) {
+            const albumLower = album.toLowerCase();
+            const artistLower = artiste.toLowerCase();
+            const best = results.find(r =>
+                (r.title || '').toLowerCase().includes(albumLower) &&
+                (r.title || '').toLowerCase().includes(artistLower)
+            );
+            if (best) {
+                await applyDiscogsRelease(best.id);
+                return;
+            }
+        }
+
+        // Show picker
+        const container = document.createElement('div');
+        container.className = 'discogs-results';
+
+        results.forEach(r => {
+            const el = document.createElement('div');
+            el.className = 'discogs-result-item';
+            const thumb = r.cover_image || r.thumb || '';
+            const titleParts = (r.title || '').split(' - ');
+            const rArtist = titleParts[0] || '';
+            const rAlbum = titleParts.slice(1).join(' - ') || '';
+            const rYear = r.year || '';
+            const rFormats = (r.format || []).join(', ');
+            const rLabel = (r.label || []).join(', ');
+
+            el.innerHTML = `
+                <img src="${esc(thumb)}" alt="" class="discogs-result-thumb">
+                <div class="discogs-result-info">
+                    <div class="discogs-result-artist">${esc(rArtist)}</div>
+                    <div class="discogs-result-album">${esc(rAlbum)}</div>
+                    <div class="discogs-result-meta">${esc(rYear)}${rLabel ? ' · ' + esc(rLabel) : ''}${rFormats ? ' · ' + esc(rFormats) : ''}</div>
+                </div>`;
+
+            el.addEventListener('click', async () => {
+                container.querySelectorAll('.discogs-result-item').forEach(e =>
+                    e.classList.add('searching')
+                );
+                el.textContent = '⏳ Chargement…';
+                await applyDiscogsRelease(r.id);
+                container.remove();
+            });
+            container.appendChild(el);
+        });
+
+        document.querySelector('.cover-col').appendChild(container);
+
+    } catch (err) {
+        if (err.message.includes('invalide')) {
+            // Bad token — re-prompt
+            const newToken = promptDiscogsToken();
+            if (newToken) {
+                discogsEnrichBtn.textContent = '🎵 Discogs';
+                discogsEnrichBtn.classList.remove('searching');
+                return enrichFromDiscogs();
+            }
+        }
+        alert('Erreur Discogs : ' + err.message);
+    } finally {
+        discogsEnrichBtn.textContent = '🎵 Discogs';
+        discogsEnrichBtn.classList.remove('searching');
+    }
+}
+
+async function applyDiscogsRelease(releaseId) {
+    try {
+        const release = await discogsGet('https://api.discogs.com/releases/' + releaseId);
+
+        // Artist
+        const artists = (release.artists || []).map(a => a.name.replace(/\s*\(\d+\)$/, '').trim());
+        const artistStr = artists.join(', ');
+        const artistField = document.getElementById('artiste');
+        if (!artistField.value.trim()) artistField.value = artistStr;
+
+        // Album
+        const albumField = document.getElementById('album');
+        if (!albumField.value.trim()) albumField.value = release.title || '';
+
+        // Year — fill even if empty in form
+        const yearField = document.getElementById('année');
+        if (!yearField.value && release.year) yearField.value = release.year;
+
+        // Label
+        const labelField = document.getElementById('label');
+        if (!labelField.value.trim()) {
+            const labels = (release.labels || []).map(l => l.name);
+            labelField.value = [...new Set(labels)].join(', ');
+        }
+
+        // Reference (catno)
+        const refField = document.getElementById('référence');
+        if (!refField.value.trim()) {
+            const catnos = (release.labels || []).map(l => l.catno).filter(c => c && c !== 'none');
+            refField.value = [...new Set(catnos)].join(', ');
+        }
+
+        // Categories — map Discogs genres/styles to app categories
+        const genres = release.genres || [];
+        const styles = release.styles || [];
+        const mappedCats = mapDiscogsCategories(genres, styles);
+
+        if (mappedCats.length > 0) {
+            document.querySelectorAll('input[name="categorie"]').forEach(cb => {
+                if (mappedCats.includes(cb.value)) cb.checked = true;
+            });
+        }
+
+        // Comment — append Discogs genres/styles + country if comment is empty
+        const commentField = document.getElementById('commentaire');
+        if (!commentField.value.trim()) {
+            const parts = [];
+            if (genres.length) parts.push('Genres: ' + genres.join(', '));
+            if (styles.length) parts.push('Styles: ' + styles.join(', '));
+            if (release.country) parts.push('Pays: ' + release.country);
+            commentField.value = parts.join(' · ');
+        }
+
+        // Cover — prefer large image
+        const images = release.images || [];
+        const primaryImg = images.find(i => i.type === 'primary') || images[0];
+        if (primaryImg && primaryImg.uri) {
+            coverUrlInput.value = primaryImg.uri;
+            setCover(primaryImg.uri);
+        }
+
+    } catch (err) {
+        alert('Erreur lors du chargement de la release Discogs : ' + err.message);
+    }
+}
+
+discogsEnrichBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    enrichFromDiscogs();
+});
+
 // === Bulk cover search ===
 const bulkCoverBtn = document.getElementById('bulkCoverBtn');
 
