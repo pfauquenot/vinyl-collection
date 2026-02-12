@@ -734,20 +734,20 @@ function parseCSV(text) {
     const fieldNames = ['categorie', 'classe', 'artiste', 'album', 'annee', 'label',
         'reference', 'gout', 'audio', 'energie', 'nb', 'prix', 'achete', 'commentaire'];
     const fieldAliases = {
-        'categorie': ['categorie', 'categories', 'cat', 'genre'],
+        'categorie': ['categorie', 'categories', 'cat', 'genre', 'genres', 'styles', 'style'],
         'classe': ['classe', 'class'],
         'artiste': ['artiste', 'artist', 'artistes'],
         'album': ['album', 'titre', 'title'],
         'annee': ['annee', 'année', 'year', 'an'],
-        'label': ['label', 'maison'],
-        'reference': ['reference', 'ref', 'ref.'],
+        'label': ['label', 'labels', 'maison'],
+        'reference': ['reference', 'ref', 'ref.', 'catnos', 'catno'],
         'gout': ['gout', 'goût', 'note'],
         'audio': ['audio', 'son', 'qualite'],
         'energie': ['energie', 'energy', 'nrj'],
         'nb': ['nb', 'ecoutes', 'nombre', 'nb ecoutes'],
         'prix': ['prix', 'price', 'cout'],
         'achete': ['achete', 'achat', 'ou', 'magasin'],
-        'commentaire': ['commentaire', 'comment', 'notes', 'remarque'],
+        'commentaire': ['commentaire', 'comment', 'notes', 'remarque', 'country', 'formats'],
         'coverurl': ['coverurl', 'pochette', 'cover', 'image', 'photo', 'artwork']
     };
 
