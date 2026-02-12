@@ -225,23 +225,35 @@ function promptDiscogsToken() {
     return token.trim();
 }
 
+async function discogsFetch(fullUrl) {
+    // Try direct fetch first (works from http/https)
+    // Fall back to CORS proxy (needed from file://)
+    try {
+        const r = await fetch(fullUrl);
+        if (r.ok || r.status === 401 || r.status === 403 || r.status === 429) return r;
+        throw new Error('HTTP ' + r.status);
+    } catch (_) {
+        // CORS or network error — use proxy
+        return fetch('https://corsproxy.io/?' + encodeURIComponent(fullUrl));
+    }
+}
+
 async function discogsGet(url) {
     const token = getDiscogsToken();
+    if (!token) throw new Error('Token Discogs manquant.');
     const sep = url.includes('?') ? '&' : '?';
-    const r = await fetch(url + sep + 'token=' + encodeURIComponent(token), {
-        headers: { 'User-Agent': 'VinylCollectionApp/1.0' }
-    });
+    const fullUrl = url + sep + 'token=' + encodeURIComponent(token);
+
+    let r = await discogsFetch(fullUrl);
+
     if (r.status === 401 || r.status === 403) {
         throw new Error('Token Discogs invalide ou expiré.');
     }
     if (r.status === 429) {
         // rate limited — wait and retry once
         await new Promise(res => setTimeout(res, 3000));
-        const r2 = await fetch(url + sep + 'token=' + encodeURIComponent(token), {
-            headers: { 'User-Agent': 'VinylCollectionApp/1.0' }
-        });
-        if (!r2.ok) throw new Error('Trop de requêtes Discogs. Réessayez dans quelques secondes.');
-        return r2.json();
+        r = await discogsFetch(fullUrl);
+        if (!r.ok) throw new Error('Trop de requêtes Discogs. Réessayez dans quelques secondes.');
     }
     if (!r.ok) throw new Error('Erreur Discogs (HTTP ' + r.status + ')');
     return r.json();
@@ -294,6 +306,7 @@ function mapDiscogsCategories(genres, styles) {
 }
 
 async function enrichFromDiscogs() {
+    // Always ensure we have a token — prompt if missing or empty
     let token = getDiscogsToken();
     if (!token) {
         token = promptDiscogsToken();
@@ -380,8 +393,9 @@ async function enrichFromDiscogs() {
         document.querySelector('.cover-col').appendChild(container);
 
     } catch (err) {
-        if (err.message.includes('invalide')) {
-            // Bad token — re-prompt
+        if (err.message.includes('invalide') || err.message.includes('manquant')) {
+            // Bad or missing token — clear and re-prompt
+            setDiscogsToken('');
             const newToken = promptDiscogsToken();
             if (newToken) {
                 discogsEnrichBtn.textContent = '🎵 Discogs';
