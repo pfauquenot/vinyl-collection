@@ -261,7 +261,11 @@ async function discogsGet(url) {
         r = await discogsFetch(fullUrl);
         if (!r.ok) throw new Error('Trop de requêtes Discogs. Réessayez dans quelques secondes.');
     }
-    if (!r.ok) throw new Error('Erreur Discogs (HTTP ' + r.status + ')');
+    if (!r.ok) {
+        let msg = 'Erreur Discogs (HTTP ' + r.status + ')';
+        try { const j = await r.json(); if (j.message) msg = j.message; } catch (_) {}
+        throw new Error(msg);
+    }
     return r.json();
 }
 

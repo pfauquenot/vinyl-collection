@@ -9,11 +9,20 @@ Usage:
 """
 
 import http.server
+import json
+import ssl
 import urllib.request
 import urllib.error
 import sys
 
 PORT = 8000
+
+# Direct HTTPS opener — explicitly bypasses any system/env proxy
+_ctx = ssl.create_default_context()
+_opener = urllib.request.build_opener(
+    urllib.request.ProxyHandler({}),          # no proxy
+    urllib.request.HTTPSHandler(context=_ctx),
+)
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -31,7 +40,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             'User-Agent': 'VinylCollectionApp/1.0',
         })
         try:
-            with urllib.request.urlopen(req) as resp:
+            with _opener.open(req, timeout=15) as resp:
                 body = resp.read()
                 self.send_response(resp.status)
                 self.send_header('Content-Type', 'application/json')
@@ -43,6 +52,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(body)
+        except Exception as e:
+            # Network error — return a proper JSON error so the frontend can display it
+            err = json.dumps({'message': f'Proxy error: {e}'}).encode()
+            self.send_response(502)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(err)
 
     def log_message(self, fmt, *args):
         # Compact logging
