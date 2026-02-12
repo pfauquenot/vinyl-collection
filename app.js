@@ -226,16 +226,22 @@ function promptDiscogsToken() {
 }
 
 async function discogsFetch(fullUrl) {
-    // Try direct fetch first (works from http/https)
-    // Fall back to CORS proxy (needed from file://)
-    try {
-        const r = await fetch(fullUrl);
-        if (r.ok || r.status === 401 || r.status === 403 || r.status === 429) return r;
-        throw new Error('HTTP ' + r.status);
-    } catch (_) {
-        // CORS or network error — use proxy
-        return fetch('https://corsproxy.io/?' + encodeURIComponent(fullUrl));
+    // When served via server.py (localhost), route through local proxy
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        const prefix = 'https://api.discogs.com/';
+        if (fullUrl.startsWith(prefix)) {
+            return fetch('/api/discogs/' + fullUrl.slice(prefix.length));
+        }
     }
+    // Direct fetch (works from hosted http/https with CORS)
+    if (location.protocol === 'file:') {
+        throw new Error(
+            'Discogs nécessite le serveur local.\n' +
+            'Lancez : python3 server.py\n' +
+            'puis ouvrez http://localhost:8000'
+        );
+    }
+    return fetch(fullUrl);
 }
 
 async function discogsGet(url) {
