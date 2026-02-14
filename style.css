@@ -269,6 +269,19 @@ header .btn-small:hover {
     color: #fff;
 }
 
+.btn-reset {
+    color: var(--text-muted);
+    font-size: 1rem !important;
+    padding: 6px 8px !important;
+    line-height: 1;
+}
+
+.btn-reset:hover {
+    color: var(--danger);
+    background: #fde8e8;
+    border-color: var(--danger);
+}
+
 .btn-close {
     background: none;
     border: none;
@@ -340,6 +353,16 @@ header .btn-small:hover {
 
 .vinyl-table thead th[data-sort]:hover {
     color: var(--accent);
+}
+
+.vinyl-table thead th.th-sorted {
+    color: var(--accent);
+}
+
+.vinyl-table thead th.th-sorted::after {
+    content: attr(data-sort-dir);
+    margin-left: 4px;
+    font-size: 0.7rem;
 }
 
 .vinyl-table tbody tr {
@@ -540,8 +563,8 @@ header .btn-small:hover {
 }
 
 .tag-categorie {
-    background: var(--accent-light);
-    color: var(--accent);
+    background: var(--accent);
+    color: #fff;
 }
 
 .tag-style {

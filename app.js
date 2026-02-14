@@ -65,6 +65,7 @@ let currentSort = 'artiste';
 let selectedIds = new Set();
 let unsubscribeVinyls = null;
 let formGenres = []; // genre array for the current form
+let filtersRestored = false;
 
 // === DOM refs ===
 const loginScreen = document.getElementById('loginScreen');
@@ -90,6 +91,8 @@ const filterGenre = document.getElementById('filterGenre');
 const filterGoût = document.getElementById('filterGoût');
 const filterEnergie = document.getElementById('filterEnergie');
 const filterClassé = document.getElementById('filterClassé');
+const filterLabel = document.getElementById('filterLabel');
+const resetFiltersBtn = document.getElementById('resetFilters');
 const sortBySelect = document.getElementById('sortBy');
 const sortDirBtn = document.getElementById('sortDir');
 const csvInput = document.getElementById('csvInput');
@@ -123,6 +126,14 @@ const tokenModalClose = document.getElementById('tokenModalClose');
 const tokenSaveBtn = document.getElementById('tokenSaveBtn');
 const tokenCancelBtn = document.getElementById('tokenCancelBtn');
 const discogsTokenInput = document.getElementById('discogsTokenInput');
+
+// === Helpers ===
+function debounce(fn, ms) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+const safeInt = s => { const n = parseInt(s); return isNaN(n) ? -1 : n; };
 
 // === Auth ===
 function signInWithGoogle() {
@@ -269,6 +280,8 @@ function subscribeToVinyls() {
             // Auto-migrate: rename 'styles' field to 'genre'
             migrateStylesToGenre();
             populateGenreFilter();
+            populateLabelFilter();
+            if (!filtersRestored) { restoreDynamicFilters(); filtersRestored = true; }
             render();
         },
         (error) => {
@@ -922,6 +935,72 @@ function populateGenreFilter() {
     }
 }
 
+function populateLabelFilter() {
+    const currentVal = filterLabel.value;
+    const allLabels = new Set();
+    vinyls.forEach(v => { if (v.label) allLabels.add(v.label); });
+    while (filterLabel.options.length > 1) filterLabel.remove(1);
+
+    [...allLabels].sort((a, b) => a.localeCompare(b, 'fr')).forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l;
+        opt.textContent = l;
+        filterLabel.appendChild(opt);
+    });
+
+    if (currentVal && allLabels.has(currentVal)) filterLabel.value = currentVal;
+}
+
+function saveFilters() {
+    try {
+        localStorage.setItem('vinylFilters', JSON.stringify({
+            categorie: filterCategorie.value,
+            genre: filterGenre.value,
+            goût: filterGoût.value,
+            energie: filterEnergie.value,
+            classé: filterClassé.value,
+            label: filterLabel.value,
+            sort: currentSort,
+            sortAsc: sortAsc,
+        }));
+    } catch(e) {}
+}
+
+function restoreFilters() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('vinylFilters'));
+        if (!saved) return;
+        if (saved.categorie) filterCategorie.value = saved.categorie;
+        if (saved.goût) filterGoût.value = saved.goût;
+        if (saved.energie) filterEnergie.value = saved.energie;
+        if (saved.classé) filterClassé.value = saved.classé;
+        if (saved.sort) currentSort = saved.sort;
+        if (saved.sortAsc !== undefined) sortAsc = saved.sortAsc;
+        sortBySelect.value = currentSort;
+        sortDirBtn.textContent = sortAsc ? '↑' : '↓';
+    } catch(e) {}
+}
+
+function restoreDynamicFilters() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('vinylFilters'));
+        if (!saved) return;
+        if (saved.genre) filterGenre.value = saved.genre;
+        if (saved.label) filterLabel.value = saved.label;
+    } catch(e) {}
+}
+
+function restoreView() {
+    try {
+        const saved = localStorage.getItem('vinylView');
+        if (saved === 'table') {
+            currentView = 'table';
+            viewTableBtn.classList.add('active');
+            viewGalleryBtn.classList.remove('active');
+        }
+    } catch(e) {}
+}
+
 // === Render ===
 function getFilteredAndSorted() {
     const search = searchInput.value.toLowerCase().trim();
@@ -930,6 +1009,7 @@ function getFilteredAndSorted() {
     const goutFilter = filterGoût.value;
     const energieFilter = filterEnergie.value;
     const classéFilter = filterClassé.value;
+    const labelFilter = filterLabel.value;
 
     let list = vinyls.filter(v => {
         if (search) {
@@ -943,6 +1023,7 @@ function getFilteredAndSorted() {
         if (goutFilter && v.goût !== goutFilter) return false;
         if (energieFilter && v.energie !== energieFilter) return false;
         if (classéFilter && v.classé !== classéFilter) return false;
+        if (labelFilter && v.label !== labelFilter) return false;
         return true;
     });
 
@@ -952,9 +1033,9 @@ function getFilteredAndSorted() {
             case 'artiste': va = (a.artiste || '').toLowerCase(); vb = (b.artiste || '').toLowerCase(); break;
             case 'album': va = (a.album || '').toLowerCase(); vb = (b.album || '').toLowerCase(); break;
             case 'année': va = parseInt(a.année) || 0; vb = parseInt(b.année) || 0; break;
-            case 'goût': va = parseInt(a.goût) ?? -1; vb = parseInt(b.goût) ?? -1; break;
-            case 'audio': va = parseInt(a.audio) ?? -1; vb = parseInt(b.audio) ?? -1; break;
-            case 'energie': va = parseInt(a.energie) ?? -1; vb = parseInt(b.energie) ?? -1; break;
+            case 'goût': va = safeInt(a.goût); vb = safeInt(b.goût); break;
+            case 'audio': va = safeInt(a.audio); vb = safeInt(b.audio); break;
+            case 'energie': va = safeInt(a.energie); vb = safeInt(b.energie); break;
             case 'prix': va = parseFloat(a.prix) || 0; vb = parseFloat(b.prix) || 0; break;
             case 'nb': va = parseInt(a.nb) || 0; vb = parseInt(b.nb) || 0; break;
             case 'classé': va = a.classé || ''; vb = b.classé || ''; break;
@@ -972,8 +1053,7 @@ function getFilteredAndSorted() {
 function render() {
     const list = getFilteredAndSorted();
 
-    const totalPrix = vinyls.reduce((s, v) => s + (parseFloat(v.prix) || 0), 0);
-    statsEl.textContent = `${vinyls.length} vinyle${vinyls.length > 1 ? 's' : ''} · ${totalPrix.toFixed(0)} € · ${list.length} affiché${list.length > 1 ? 's' : ''}`;
+    statsEl.textContent = `${vinyls.length} vinyle${vinyls.length > 1 ? 's' : ''} · ${list.length} affiché${list.length > 1 ? 's' : ''}`;
 
     if (list.length === 0) {
         vinylTable.classList.add('hidden');
@@ -997,12 +1077,27 @@ function render() {
         tableView.classList.remove('hidden');
         renderTable(list);
     }
+    updateSortIndicator();
+}
+
+function updateSortIndicator() {
+    document.querySelectorAll('.vinyl-table thead th[data-sort]').forEach(th => {
+        if (th.dataset.sort === currentSort) {
+            th.classList.add('th-sorted');
+            th.setAttribute('data-sort-dir', sortAsc ? ' ↑' : ' ↓');
+        } else {
+            th.classList.remove('th-sorted');
+            th.removeAttribute('data-sort-dir');
+        }
+    });
+    sortBySelect.value = currentSort;
+    sortDirBtn.textContent = sortAsc ? '↑' : '↓';
 }
 
 function renderGallery(list) {
     galleryView.innerHTML = list.map(v => {
         const imgHtml = v.coverUrl
-            ? `<img src="${esc(v.coverUrl)}" alt="${esc(v.album)}">`
+            ? `<img src="${esc(v.coverUrl)}" alt="${esc(v.album)}" loading="lazy">`
             : `<span class="gallery-no-img">♫</span>`;
 
         const stylesHtml = (v.genre || []).length > 0
@@ -1290,32 +1385,37 @@ deleteBtn.addEventListener('click', async () => {
 
 // Search clear button
 const searchClearBtn = document.getElementById('searchClearBtn');
+const debouncedRender = debounce(() => { selectedIds.clear(); render(); }, 200);
 searchInput.addEventListener('input', () => {
     searchClearBtn.classList.toggle('hidden', searchInput.value === '');
-    render();
+    debouncedRender();
 });
 searchClearBtn.addEventListener('click', () => {
     searchInput.value = '';
     searchClearBtn.classList.add('hidden');
     searchInput.focus();
+    selectedIds.clear();
     render();
 });
 
 // Filters & search
-filterCategorie.addEventListener('change', render);
-filterGenre.addEventListener('change', render);
-filterGoût.addEventListener('change', render);
-filterEnergie.addEventListener('change', render);
-filterClassé.addEventListener('change', render);
+function onFilterChange() { selectedIds.clear(); saveFilters(); render(); }
+filterCategorie.addEventListener('change', onFilterChange);
+filterGenre.addEventListener('change', onFilterChange);
+filterGoût.addEventListener('change', onFilterChange);
+filterEnergie.addEventListener('change', onFilterChange);
+filterClassé.addEventListener('change', onFilterChange);
+filterLabel.addEventListener('change', onFilterChange);
 
 sortBySelect.addEventListener('change', () => {
     currentSort = sortBySelect.value;
+    saveFilters();
     render();
 });
 
 sortDirBtn.addEventListener('click', () => {
     sortAsc = !sortAsc;
-    sortDirBtn.textContent = sortAsc ? '↑' : '↓';
+    saveFilters();
     render();
 });
 
@@ -1325,15 +1425,30 @@ document.querySelectorAll('.vinyl-table thead th[data-sort]').forEach(th => {
         const col = th.dataset.sort;
         if (currentSort === col) {
             sortAsc = !sortAsc;
-            sortDirBtn.textContent = sortAsc ? '↑' : '↓';
         } else {
             currentSort = col;
-            sortBySelect.value = col;
             sortAsc = true;
-            sortDirBtn.textContent = '↑';
         }
+        saveFilters();
         render();
     });
+});
+
+// Reset filters
+resetFiltersBtn.addEventListener('click', () => {
+    filterCategorie.value = '';
+    filterGenre.value = '';
+    filterGoût.value = '';
+    filterEnergie.value = '';
+    filterClassé.value = '';
+    filterLabel.value = '';
+    searchInput.value = '';
+    searchClearBtn.classList.add('hidden');
+    currentSort = 'artiste';
+    sortAsc = true;
+    selectedIds.clear();
+    saveFilters();
+    render();
 });
 
 // Cover photo
@@ -1367,6 +1482,7 @@ viewTableBtn.addEventListener('click', () => {
     currentView = 'table';
     viewTableBtn.classList.add('active');
     viewGalleryBtn.classList.remove('active');
+    try { localStorage.setItem('vinylView', 'table'); } catch(e) {}
     render();
 });
 
@@ -1374,6 +1490,7 @@ viewGalleryBtn.addEventListener('click', () => {
     currentView = 'gallery';
     viewGalleryBtn.classList.add('active');
     viewTableBtn.classList.remove('active');
+    try { localStorage.setItem('vinylView', 'gallery'); } catch(e) {}
     render();
 });
 
@@ -1972,4 +2089,7 @@ hamburgerDropdown.querySelectorAll('.hamburger-item').forEach(item => {
 
 // === Init ===
 populateFilters();
+restoreFilters();
+restoreView();
+document.getElementById('année').max = new Date().getFullYear() + 1;
 // Auth state listener handles loading vinyls and rendering
