@@ -70,6 +70,7 @@ const filterCategorie = document.getElementById('filterCategorie');
 const filterGoût = document.getElementById('filterGoût');
 const filterEnergie = document.getElementById('filterEnergie');
 const filterClassé = document.getElementById('filterClassé');
+const filterLabel = document.getElementById('filterLabel');
 const sortBySelect = document.getElementById('sortBy');
 const sortDirBtn = document.getElementById('sortDir');
 const csvInput = document.getElementById('csvInput');
@@ -290,6 +291,22 @@ function populateFilters() {
         opt.textContent = `${k} – ${v}`;
         filterEnergie.appendChild(opt);
     });
+
+    populateLabelFilter();
+}
+
+function populateLabelFilter() {
+    const current = filterLabel.value;
+    // Garder la première option "Tous labels"
+    while (filterLabel.options.length > 1) filterLabel.remove(1);
+    const labels = [...new Set(vinyls.map(v => (v.label || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
+    labels.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l;
+        opt.textContent = l;
+        filterLabel.appendChild(opt);
+    });
+    filterLabel.value = current;
 }
 
 // === Render ===
@@ -299,6 +316,7 @@ function getFilteredAndSorted() {
     const goutFilter = filterGoût.value;
     const energieFilter = filterEnergie.value;
     const classéFilter = filterClassé.value;
+    const labelFilter = filterLabel.value;
 
     let list = vinyls.filter(v => {
         if (search) {
@@ -311,6 +329,7 @@ function getFilteredAndSorted() {
         if (goutFilter && v.goût !== goutFilter) return false;
         if (energieFilter && v.energie !== energieFilter) return false;
         if (classéFilter && v.classé !== classéFilter) return false;
+        if (labelFilter && (v.label || '').trim() !== labelFilter) return false;
         return true;
     });
 
@@ -338,6 +357,7 @@ function getFilteredAndSorted() {
 }
 
 function render() {
+    populateLabelFilter();
     const list = getFilteredAndSorted();
 
     // Stats
@@ -607,7 +627,8 @@ function saveFilters() {
         categorie: filterCategorie.value,
         goût: filterGoût.value,
         energie: filterEnergie.value,
-        classé: filterClassé.value
+        classé: filterClassé.value,
+        label: filterLabel.value
     }));
 }
 
@@ -627,12 +648,13 @@ filterCategorie.addEventListener('change', clearSelectionAndRender);
 filterGoût.addEventListener('change', clearSelectionAndRender);
 filterEnergie.addEventListener('change', clearSelectionAndRender);
 filterClassé.addEventListener('change', clearSelectionAndRender);
+filterLabel.addEventListener('change', clearSelectionAndRender);
 
 // Reset filters button
 const resetFiltersBtn = document.getElementById('resetFilters');
 
 function updateResetButton() {
-    const hasFilter = searchInput.value || filterCategorie.value || filterGoût.value || filterEnergie.value || filterClassé.value;
+    const hasFilter = searchInput.value || filterCategorie.value || filterGoût.value || filterEnergie.value || filterClassé.value || filterLabel.value;
     resetFiltersBtn.classList.toggle('hidden', !hasFilter);
 }
 
@@ -642,6 +664,7 @@ resetFiltersBtn.addEventListener('click', () => {
     filterGoût.value = '';
     filterEnergie.value = '';
     filterClassé.value = '';
+    filterLabel.value = '';
     resetFiltersBtn.classList.add('hidden');
     clearSelectionAndRender();
 });
@@ -1042,6 +1065,7 @@ try {
     if (saved.goût) filterGoût.value = saved.goût;
     if (saved.energie) filterEnergie.value = saved.energie;
     if (saved.classé) filterClassé.value = saved.classé;
+    if (saved.label) filterLabel.value = saved.label;
 } catch {}
 // Restaurer le tri
 sortBySelect.value = currentSort;
