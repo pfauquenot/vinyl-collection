@@ -165,7 +165,7 @@ header h1 {
     border-bottom: 1px solid var(--border-light);
     background: var(--bg-header);
     position: sticky;
-    top: 106px;
+    top: var(--header-height, 106px);
     z-index: 99;
     -webkit-overflow-scrolling: touch;
 }

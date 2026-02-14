@@ -46,7 +46,11 @@ function loadVinyls() {
 }
 
 function saveVinyls() {
-    localStorage.setItem('vinyls', JSON.stringify(vinyls));
+    try {
+        localStorage.setItem('vinyls', JSON.stringify(vinyls));
+    } catch (e) {
+        alert('Espace de stockage plein ! Vos dernières modifications n\'ont pas été sauvegardées.\nExportez vos données en JSON pour ne rien perdre.');
+    }
 }
 
 // === DOM refs ===
@@ -316,9 +320,9 @@ function getFilteredAndSorted() {
             case 'artiste': va = (a.artiste || '').toLowerCase(); vb = (b.artiste || '').toLowerCase(); break;
             case 'album': va = (a.album || '').toLowerCase(); vb = (b.album || '').toLowerCase(); break;
             case 'année': va = parseInt(a.année) || 0; vb = parseInt(b.année) || 0; break;
-            case 'goût': va = parseInt(a.goût) ?? -1; vb = parseInt(b.goût) ?? -1; break;
-            case 'audio': va = parseInt(a.audio) ?? -1; vb = parseInt(b.audio) ?? -1; break;
-            case 'energie': va = parseInt(a.energie) ?? -1; vb = parseInt(b.energie) ?? -1; break;
+            case 'goût': va = parseInt(a.goût) || -1; vb = parseInt(b.goût) || -1; break;
+            case 'audio': va = parseInt(a.audio) || -1; vb = parseInt(b.audio) || -1; break;
+            case 'energie': va = parseInt(a.energie) || -1; vb = parseInt(b.energie) || -1; break;
             case 'prix': va = parseFloat(a.prix) || 0; vb = parseFloat(b.prix) || 0; break;
             case 'nb': va = parseInt(a.nb) || 0; vb = parseInt(b.nb) || 0; break;
             case 'classé': va = a.classé || ''; vb = b.classé || ''; break;
@@ -368,7 +372,7 @@ function render() {
 function renderGallery(list) {
     galleryView.innerHTML = list.map(v => {
         const imgHtml = v.coverUrl
-            ? `<img src="${esc(v.coverUrl)}" alt="${esc(v.album)}">`
+            ? `<img src="${esc(v.coverUrl)}" alt="${esc(v.album)}" loading="lazy">`
             : `<span class="gallery-no-img">♫</span>`;
 
         return `<div class="gallery-card" data-id="${v.id}">
@@ -599,11 +603,20 @@ deleteBtn.addEventListener('click', () => {
 });
 
 // Filters & search
-searchInput.addEventListener('input', render);
-filterCategorie.addEventListener('change', render);
-filterGoût.addEventListener('change', render);
-filterEnergie.addEventListener('change', render);
-filterClassé.addEventListener('change', render);
+function clearSelectionAndRender() {
+    selectedIds.clear();
+    selectAllCb.checked = false;
+    render();
+}
+let searchTimeout;
+searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(clearSelectionAndRender, 200);
+});
+filterCategorie.addEventListener('change', clearSelectionAndRender);
+filterGoût.addEventListener('change', clearSelectionAndRender);
+filterEnergie.addEventListener('change', clearSelectionAndRender);
+filterClassé.addEventListener('change', clearSelectionAndRender);
 
 sortBySelect.addEventListener('change', () => {
     currentSort = sortBySelect.value;
@@ -954,7 +967,16 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// === Sticky filters: calcul dynamique de la hauteur du header ===
+function updateHeaderHeight() {
+    const h = document.querySelector('header');
+    if (h) document.documentElement.style.setProperty('--header-height', h.offsetHeight + 'px');
+}
+window.addEventListener('resize', updateHeaderHeight);
+
 // === Init ===
+document.getElementById('année').max = new Date().getFullYear() + 1;
 loadVinyls();
 populateFilters();
 render();
+updateHeaderHeight();
