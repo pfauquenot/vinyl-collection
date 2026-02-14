@@ -128,7 +128,7 @@ vinyl-collection/
 {
   id: "uuid",
   dateAjout: "ISO 8601",
-  categorie: ["Jazz", "Pop / Rock"],   // tableau de strings
+  categorie: ["Jazz", "Pop / Rock"],   // tableau de strings — affiché "Rangement" dans l'UI
   classé: "Oui" | "Non",
   artiste: "Nom de l'artiste",
   album: "Titre de l'album",
@@ -140,9 +140,11 @@ vinyl-collection/
   energie: "1" à "6",                  // string numérique
   nb: "12",                            // nombre d'écoutes, string
   prix: "29.99",                       // string
-  acheté: "Discogs",
+  acheté: "Discogs",                   // affiché "Acheté ou" dans l'UI
+  lieu: "PFA",                         // "PFA" | "En livraison" | "A acheter" | "A vendre" | "Vendu" | ""
+  avisIA: "Texte libre",              // avis généré par IA
   commentaire: "Texte libre",
-  coverUrl: "https://..."
+  coverUrl: "https://..."             // affiché "URL cover" dans le CSV
 }
 ```
 

@@ -73,7 +73,7 @@
 
         <div class="filters" id="filtersBar">
             <select id="filterCategorie">
-                <option value="">Toutes catégories</option>
+                <option value="">Tous rangements</option>
             </select>
             <select id="filterGenre">
                 <option value="">Tous genres</option>
@@ -118,7 +118,7 @@
                 <thead>
                     <tr>
                         <th class="col-center col-check guest-hidden"><input type="checkbox" id="selectAll" title="Tout sélectionner"></th>
-                        <th>Catégorie</th>
+                        <th>Rangement</th>
                         <th data-sort="classé" class="col-center">Classé</th>
                         <th data-sort="artiste">Artiste</th>
                         <th data-sort="album">Album</th>
@@ -131,7 +131,9 @@
                         <th data-sort="energie">Énergie</th>
                         <th data-sort="nb" class="col-center">Nb</th>
                         <th data-sort="prix">Prix</th>
-                        <th>Acheté</th>
+                        <th>Acheté ou</th>
+                        <th>Lieu</th>
+                        <th>Avis IA</th>
                         <th>Commentaire</th>
                         <th class="col-center">Discogs</th>
                     </tr>
@@ -190,7 +192,7 @@
 
                     <div class="form-grid">
                         <div class="form-group full-width">
-                            <label>Catégorie(s)</label>
+                            <label>Rangement(s)</label>
                             <div class="checkbox-group" id="categorieGroup">
                                 <label><input type="checkbox" name="categorie" value="Jazz"> Jazz</label>
                                 <label><input type="checkbox" name="categorie" value="Jazz TBM"> Jazz TBM</label>
@@ -293,8 +295,25 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="acheté">Acheté</label>
+                            <label for="acheté">Acheté ou</label>
                             <input type="text" id="acheté" name="acheté" placeholder="Ex: Discogs, Fnac...">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="lieu">Lieu</label>
+                            <select id="lieu" name="lieu">
+                                <option value="">—</option>
+                                <option value="PFA">PFA</option>
+                                <option value="En livraison">En livraison</option>
+                                <option value="A acheter">A acheter</option>
+                                <option value="A vendre">A vendre</option>
+                                <option value="Vendu">Vendu</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="avisIA">Avis IA</label>
+                            <textarea id="avisIA" name="avisIA" rows="2"></textarea>
                         </div>
 
                         <div class="form-group full-width">

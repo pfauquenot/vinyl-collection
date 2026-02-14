@@ -1023,7 +1023,7 @@ function getFilteredAndSorted() {
 
     let list = vinyls.filter(v => {
         if (search) {
-            const hay = [v.artiste, v.album, v.label, v.référence, v.acheté, v.commentaire,
+            const hay = [v.artiste, v.album, v.label, v.référence, v.acheté, v.lieu, v.avisIA, v.commentaire,
                 ...(v.categorie || []), ...(v.genre || [])]
                 .filter(Boolean).join(' ').toLowerCase();
             if (!hay.includes(search)) return false;
@@ -1165,6 +1165,8 @@ function renderTable(list) {
             <td class="cell-center">${v.nb && v.nb !== '0' ? v.nb : ''}</td>
             <td class="cell-num">${v.prix ? v.prix + ' €' : ''}</td>
             <td>${esc(v.acheté)}</td>
+            <td>${esc(v.lieu)}</td>
+            <td class="cell-comment" title="${esc(v.avisIA)}">${esc(v.avisIA)}</td>
             <td class="cell-comment" title="${esc(v.commentaire)}">${esc(v.commentaire)}</td>
             <td class="cell-center">${discogsHtml}</td>
         </tr>`;
@@ -1301,6 +1303,8 @@ function openEdit(id) {
     document.getElementById('nb').value = v.nb || '0';
     document.getElementById('prix').value = v.prix || '';
     document.getElementById('acheté').value = v.acheté || '';
+    document.getElementById('lieu').value = v.lieu || '';
+    document.getElementById('avisIA').value = v.avisIA || '';
     document.getElementById('commentaire').value = v.commentaire || '';
 
     // Styles
@@ -1349,6 +1353,8 @@ function getFormData() {
         nb: document.getElementById('nb').value,
         prix: document.getElementById('prix').value,
         acheté: document.getElementById('acheté').value.trim(),
+        lieu: document.getElementById('lieu').value,
+        avisIA: document.getElementById('avisIA').value.trim(),
         commentaire: document.getElementById('commentaire').value.trim(),
         coverUrl: coverUrlInput.value.trim(),
         genre: [...formGenres],
@@ -1848,7 +1854,7 @@ function parseCSV(text) {
 
     const headerMap = {};
     const fieldAliases = {
-        'categorie': ['categorie', 'categories', 'cat', 'genre'],
+        'categorie': ['categorie', 'categories', 'cat', 'rangement', 'rangements'],
         'classe': ['classe', 'class'],
         'artiste': ['artiste', 'artist', 'artistes'],
         'album': ['album', 'titre', 'title'],
@@ -1860,9 +1866,11 @@ function parseCSV(text) {
         'energie': ['energie', 'energy', 'nrj'],
         'nb': ['nb', 'ecoutes', 'nombre', 'nb ecoutes'],
         'prix': ['prix', 'price', 'cout'],
-        'achete': ['achete', 'achat', 'ou', 'magasin'],
+        'achete': ['achete', 'achat', 'ou', 'magasin', 'achete ou'],
+        'lieu': ['lieu', 'location', 'emplacement'],
+        'avisia': ['avisia', 'avis ia', 'avis_ia', 'ia'],
         'commentaire': ['commentaire', 'comment', 'notes', 'remarque'],
-        'coverurl': ['coverurl', 'pochette', 'cover', 'image', 'photo', 'artwork'],
+        'coverurl': ['coverurl', 'pochette', 'cover', 'image', 'photo', 'artwork', 'url cover'],
         'genre': ['genre', 'genres', 'styles', 'style', 'sous-genre', 'sous genre', 'sub-genre'],
         'discogsurl': ['discogsurl', 'discogs', 'discogs url', 'lien discogs', 'discogs link']
     };
@@ -1916,6 +1924,8 @@ function parseCSV(text) {
             nb: get('nb') || '0',
             prix: get('prix'),
             acheté: get('achete'),
+            lieu: get('lieu'),
+            avisIA: get('avisia'),
             commentaire: get('commentaire'),
             coverUrl: get('coverurl'),
             genre,
@@ -2494,7 +2504,7 @@ document.getElementById('backupFrequency').addEventListener('change', async (e) 
 
 // === Export CSV ===
 document.getElementById('exportCsvBtn').addEventListener('click', () => {
-    const headers = ['Catégorie', 'Classé', 'Artiste', 'Album', 'Année', 'Label', 'Référence', 'Genre', 'Goût', 'Audio', 'Énergie', 'Nb', 'Prix', 'Acheté', 'Commentaire', 'Pochette', 'Discogs URL'];
+    const headers = ['Rangement', 'Classé', 'Artiste', 'Album', 'Année', 'Label', 'Référence', 'Genre', 'Goût', 'Audio', 'Énergie', 'Nb', 'Prix', 'Acheté ou', 'Lieu', 'Avis IA', 'Commentaire', 'URL cover', 'Discogs URL'];
 
     function csvEscape(val) {
         if (!val) return '';
@@ -2524,6 +2534,8 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
             v.nb || '',
             v.prix || '',
             v.acheté || '',
+            v.lieu || '',
+            v.avisIA || '',
             v.commentaire || '',
             v.coverUrl || '',
             v.discogsUrl || ''

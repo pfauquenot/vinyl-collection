@@ -200,7 +200,7 @@ Structure d'un enregistrement :
 {
   id: "uuid",
   dateAjout: "2024-01-15T10:30:00.000Z",
-  categorie: ["Jazz", "Pop / Rock"],
+  categorie: ["Jazz", "Pop / Rock"],  // affiche "Rangement" dans l'UI
   classe: "Oui",
   artiste: "Miles Davis",
   album: "Kind of Blue",
@@ -212,9 +212,11 @@ Structure d'un enregistrement :
   energie: "2",     // 1 (Tres doux) a 6 (Explosif)
   nb: "42",
   prix: "35.00",
-  achete: "Discogs",
+  achete: "Discogs",               // affiche "Achete ou" dans l'UI
+  lieu: "PFA",                     // PFA | En livraison | A acheter | A vendre | Vendu
+  avisIA: "Texte libre",           // avis genere par IA
   commentaire: "Pressage original mono",
-  coverUrl: "https://..."
+  coverUrl: "https://..."          // affiche "URL cover" dans le CSV
 }
 ```
 
