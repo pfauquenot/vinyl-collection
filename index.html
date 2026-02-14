@@ -7,28 +7,65 @@
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
 </head>
 <body>
-    <div id="app">
-        <header>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-card">
+            <div class="login-vinyl-icon">&#9835;</div>
             <h1>Ma Collection Vinyles</h1>
+            <p>Connectez-vous pour accéder à votre collection</p>
+            <button id="loginBtn" class="btn btn-primary btn-google">
+                <svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:8px;vertical-align:middle"><path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Se connecter avec Google
+            </button>
+        </div>
+    </div>
+
+    <div id="app" class="hidden">
+        <header>
+            <div class="header-top-row">
+                <h1>Ma Collection Vinyles</h1>
+                <div class="user-section">
+                    <div id="userInfo" class="user-info"></div>
+                    <span id="roleBadge" class="role-badge hidden"></span>
+                    <button id="logoutBtn" class="btn btn-small">Déconnexion</button>
+                </div>
+            </div>
             <div class="header-actions">
                 <div class="search-bar">
-                    <input type="text" id="searchInput" placeholder="Rechercher artiste, album, label...">
+                    <input type="text" id="searchInput" placeholder="Rechercher artiste, album, label, genre...">
+                    <button type="button" id="searchClearBtn" class="search-clear-btn hidden" title="Effacer">&times;</button>
                 </div>
-                <button id="addBtn" class="btn btn-primary">+ Ajouter</button>
-                <label class="btn btn-secondary btn-import">
-                    Importer CSV
-                    <input type="file" id="csvInput" accept=".csv" hidden>
-                </label>
-                <button id="bulkCoverBtn" class="btn btn-secondary" title="Chercher automatiquement les pochettes manquantes">🔍 Pochettes auto</button>
-                <button id="exportBtn" class="btn btn-secondary" title="Exporter toutes les données (JSON)">💾 JSON</button>
-                <button id="exportCsvBtn" class="btn btn-secondary" title="Exporter en CSV">💾 CSV</button>
-                <label class="btn btn-secondary btn-import" title="Importer des données (JSON ou CSV)">
-                    📂 Import
-                    <input type="file" id="jsonImport" accept=".json" hidden>
-                </label>
-                <button id="bulkDeleteBtn" class="btn btn-danger hidden">Supprimer la sélection</button>
+                <button id="addBtn" class="btn btn-primary guest-hidden">+ Ajouter</button>
+                <button id="manageStylesBtn" class="btn btn-secondary guest-hidden" title="Gérer les genres"><span class="material-symbols-outlined">sell</span> Genres</button>
+                <button id="bulkDeleteBtn" class="btn btn-danger hidden guest-hidden">Supprimer la sélection</button>
+
+                <!-- Menu sandwich -->
+                <div class="hamburger-menu" id="hamburgerMenu">
+                    <button id="hamburgerBtn" class="btn btn-secondary hamburger-btn" title="Plus d'options"><span class="material-symbols-outlined">menu</span></button>
+                    <div id="hamburgerDropdown" class="hamburger-dropdown">
+                        <button class="hamburger-item guest-hidden" id="bulkDiscogsBtn"><span class="material-symbols-outlined">album</span> Discogs auto</button>
+                        <button class="hamburger-item guest-hidden" id="bulkCoverBtn"><span class="material-symbols-outlined">image_search</span> Pochettes auto</button>
+                        <div class="hamburger-separator"></div>
+                        <label class="hamburger-item guest-hidden">
+                            <span class="material-symbols-outlined">upload_file</span> Importer CSV
+                            <input type="file" id="csvInput" accept=".csv" hidden>
+                        </label>
+                        <label class="hamburger-item guest-hidden">
+                            <span class="material-symbols-outlined">upload_file</span> Importer JSON
+                            <input type="file" id="jsonImport" accept=".json" hidden>
+                        </label>
+                        <button class="hamburger-item" id="exportCsvBtn"><span class="material-symbols-outlined">download</span> Exporter CSV</button>
+                        <button class="hamburger-item" id="exportBtn"><span class="material-symbols-outlined">download</span> Exporter JSON</button>
+                        <div class="hamburger-separator guest-hidden"></div>
+                        <button class="hamburger-item guest-hidden" id="resetDiscogsTokenBtn"><span class="material-symbols-outlined">key</span> Token Discogs</button>
+                        <div class="hamburger-separator admin-only hidden"></div>
+                        <button class="hamburger-item admin-only hidden" id="adminUsersBtn"><span class="material-symbols-outlined">group</span> Utilisateurs</button>
+                        <button class="hamburger-item hamburger-danger admin-only hidden" id="clearDbBtn"><span class="material-symbols-outlined">delete_sweep</span> Vider la base</button>
+                    </div>
+                </div>
             </div>
             <div class="stats" id="stats"></div>
         </header>
@@ -36,6 +73,9 @@
         <div class="filters" id="filtersBar">
             <select id="filterCategorie">
                 <option value="">Toutes catégories</option>
+            </select>
+            <select id="filterGenre">
+                <option value="">Tous genres</option>
             </select>
             <select id="filterGoût">
                 <option value="">Tous goûts</option>
@@ -48,9 +88,6 @@
                 <option value="Oui">Oui</option>
                 <option value="Non">Non</option>
             </select>
-            <select id="filterLabel">
-                <option value="">Tous labels</option>
-            </select>
             <select id="sortBy">
                 <option value="artiste">Tri: Artiste</option>
                 <option value="album">Tri: Album</option>
@@ -62,11 +99,10 @@
                 <option value="nb">Tri: Nb écoutes</option>
                 <option value="dateAjout">Tri: Date ajout</option>
             </select>
-            <button id="sortDir" class="btn btn-small" title="Inverser le tri">↑</button>
-            <button id="resetFilters" class="btn btn-small hidden" title="Réinitialiser les filtres">✕ Reset</button>
+            <button id="sortDir" class="btn btn-small" title="Inverser le tri">&#8593;</button>
             <div class="view-toggle">
-                <button id="viewTable" class="btn btn-small view-btn" title="Vue tableau">☰</button>
-                <button id="viewGallery" class="btn btn-small view-btn active" title="Vue galerie">▦</button>
+                <button id="viewTable" class="btn btn-small view-btn" title="Vue tableau">&#9776;</button>
+                <button id="viewGallery" class="btn btn-small view-btn active" title="Vue galerie">&#9638;</button>
             </div>
         </div>
 
@@ -76,7 +112,7 @@
             <table id="vinylTable" class="vinyl-table">
                 <thead>
                     <tr>
-                        <th class="col-center col-check"><input type="checkbox" id="selectAll" title="Tout sélectionner"></th>
+                        <th class="col-center col-check guest-hidden"><input type="checkbox" id="selectAll" title="Tout sélectionner"></th>
                         <th>Catégorie</th>
                         <th data-sort="classé" class="col-center">Classé</th>
                         <th data-sort="artiste">Artiste</th>
@@ -84,6 +120,7 @@
                         <th data-sort="année" class="col-center">Année</th>
                         <th>Label</th>
                         <th>Réf.</th>
+                        <th>Genre</th>
                         <th data-sort="goût">Goût</th>
                         <th data-sort="audio">Audio</th>
                         <th data-sort="energie">Énergie</th>
@@ -91,6 +128,7 @@
                         <th data-sort="prix">Prix</th>
                         <th>Acheté</th>
                         <th>Commentaire</th>
+                        <th class="col-center">Discogs</th>
                     </tr>
                 </thead>
                 <tbody id="vinylBody"></tbody>
@@ -118,8 +156,12 @@
                             </div>
                             <input type="text" id="coverUrl" class="cover-url-input hidden" placeholder="URL de la pochette">
                             <div class="cover-actions">
-                                <button type="button" id="coverSearchBtn" class="btn btn-small btn-discogs" title="Chercher la pochette automatiquement">🔍 Pochette</button>
-                                <button type="button" id="coverUrlBtn" class="btn btn-small btn-discogs" title="Saisir une URL d'image manuellement">🔗 URL</button>
+                                <button type="button" id="coverSearchBtn" class="btn btn-small btn-discogs" title="Chercher la pochette automatiquement">&#128269; Pochette</button>
+                                <button type="button" id="coverUrlBtn" class="btn btn-small btn-discogs" title="Saisir une URL d'image manuellement">&#128279; URL</button>
+                            </div>
+                            <div class="cover-actions">
+                                <button type="button" id="discogsSearchBtn" class="btn btn-small btn-discogs" title="Chercher sur Discogs (styles + pochette + lien)">&#128269; Discogs</button>
+                                <button type="button" id="discogsUrlBtn" class="btn btn-small btn-discogs" title="Coller un lien Discogs manuellement">&#128279; Lien Discogs</button>
                             </div>
                         </div>
                         <div class="form-top-fields">
@@ -133,10 +175,14 @@
                             </div>
                             <div class="form-group">
                                 <label for="année">Année</label>
-                                <input type="number" id="année" name="année" min="1900">
+                                <input type="number" id="année" name="année" min="1900" max="2030">
                             </div>
                         </div>
                     </div>
+
+                    <!-- Discogs results zone -->
+                    <div id="discogsResults" class="discogs-results hidden"></div>
+
                     <div class="form-grid">
                         <div class="form-group full-width">
                             <label>Catégorie(s)</label>
@@ -152,6 +198,22 @@
                                 <label><input type="checkbox" name="categorie" value="Blues"> Blues</label>
                                 <label><input type="checkbox" name="categorie" value="Electronique"> Electronique</label>
                                 <label><input type="checkbox" name="categorie" value="Classique"> Classique</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label>Genre <small>(via Discogs ou manuellement)</small></label>
+                            <div class="tags-input-zone" id="genreZone">
+                                <div id="genreTags" class="tags-list"></div>
+                                <input type="text" id="genreInput" class="tags-text-input" placeholder="Ajouter un genre et appuyer Entrée...">
+                            </div>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="discogsUrl">Lien Discogs</label>
+                            <div class="discogs-url-row">
+                                <input type="text" id="discogsUrl" name="discogsUrl" placeholder="https://www.discogs.com/release/...">
+                                <a id="discogsLink" href="#" target="_blank" class="btn btn-small btn-discogs-link hidden" title="Ouvrir sur Discogs">&#8599;</a>
                             </div>
                         </div>
 
@@ -246,9 +308,66 @@
                 </form>
             </div>
         </div>
+
+        <!-- Modal Admin: Gestion Utilisateurs -->
+        <div id="adminModal" class="modal hidden">
+            <div class="modal-overlay"></div>
+            <div class="modal-content modal-admin">
+                <div class="modal-header">
+                    <h2>Gestion des utilisateurs</h2>
+                    <button id="adminModalClose" class="btn-close">&times;</button>
+                </div>
+                <div id="adminUsersList" class="admin-users-list">
+                    <p>Chargement...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Gestion Styles -->
+        <div id="stylesModal" class="modal hidden">
+            <div class="modal-overlay"></div>
+            <div class="modal-content modal-styles">
+                <div class="modal-header">
+                    <h2>Gestion des genres</h2>
+                    <button id="stylesModalClose" class="btn-close">&times;</button>
+                </div>
+                <div class="styles-manager-toolbar">
+                    <input type="text" id="stylesFilterInput" placeholder="Filtrer les genres...">
+                    <span id="stylesCount" class="styles-count"></span>
+                </div>
+                <div id="stylesManagerList" class="styles-manager-list">
+                    <p>Chargement...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Token Discogs -->
+        <div id="tokenModal" class="modal hidden">
+            <div class="modal-overlay"></div>
+            <div class="modal-content modal-token">
+                <div class="modal-header">
+                    <h2>Token Discogs</h2>
+                    <button id="tokenModalClose" class="btn-close">&times;</button>
+                </div>
+                <p class="token-info">Pour utiliser l'API Discogs, entrez votre Personal Access Token.<br>
+                Obtenez-le sur <a href="https://www.discogs.com/settings/developers" target="_blank">discogs.com/settings/developers</a></p>
+                <div class="form-group">
+                    <input type="text" id="discogsTokenInput" placeholder="Votre token Discogs">
+                </div>
+                <div class="form-actions-right" style="margin-top:12px">
+                    <button type="button" id="tokenCancelBtn" class="btn btn-secondary">Annuler</button>
+                    <button type="button" id="tokenSaveBtn" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+
         <!-- fin app -->
     </div>
 
+    <!-- Firebase SDK (compat CDN) -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
