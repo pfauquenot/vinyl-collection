@@ -1,4 +1,4 @@
-# Ma Collection Vinyles
+# Vinylthèque
 
 Application web de gestion de collection de disques vinyles. Cataloguez, notez, filtrez et recherchez vos vinyles, avec récupération automatique des pochettes via l'API Deezer.
 
