@@ -138,10 +138,18 @@ const safeInt = s => { const n = parseInt(s); return isNaN(n) ? -1 : n; };
 // === Auth ===
 function signInWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(err => {
-        console.error('Login failed:', err);
-        alert('Erreur de connexion: ' + err.message);
-    });
+    // If user previously enabled Drive backup, request scope to get fresh token
+    try { if (localStorage.getItem('driveBackupEnabled') === 'true') provider.addScope('https://www.googleapis.com/auth/drive.file'); } catch (e) {}
+    auth.signInWithPopup(provider)
+        .then(result => {
+            if (result.credential && result.credential.accessToken) {
+                storeGoogleToken(result.credential.accessToken);
+            }
+        })
+        .catch(err => {
+            console.error('Login failed:', err);
+            alert('Erreur de connexion: ' + err.message);
+        });
 }
 
 function signOut() {
@@ -243,10 +251,12 @@ auth.onAuthStateChanged(async (user) => {
         applyRoleUI();
         subscribeToVinyls();
         await migrateLocalStorageToFirestore();
+        await initBackupScheduler();
     } else {
         currentUser = null;
         currentUserRole = 'user';
         discogsToken = '';
+        if (backupIntervalId) { clearInterval(backupIntervalId); backupIntervalId = null; }
         if (unsubscribeVinyls) {
             unsubscribeVinyls();
             unsubscribeVinyls = null;
@@ -1963,6 +1973,525 @@ function parseCSVLines(text) {
     return lines;
 }
 
+// === Backup & Versioning ===
+let googleAccessToken = null;
+let tokenExpiry = 0;
+let backupSettings = { frequency: 'manual', lastBackup: null, driveEnabled: false, driveFolderId: null };
+const DRIVE_FOLDER_NAME = 'Vinylthèque Backup';
+const MAX_DRIVE_BACKUPS = 30;
+const MAX_FIRESTORE_SNAPSHOTS = 10;
+
+// -- Google token management --
+function storeGoogleToken(accessToken) {
+    googleAccessToken = accessToken;
+    tokenExpiry = Date.now() + 3500000; // ~58 min
+    try {
+        sessionStorage.setItem('gdriveToken', accessToken);
+        sessionStorage.setItem('gdriveTokenExpiry', String(tokenExpiry));
+    } catch (e) {}
+}
+
+function restoreGoogleToken() {
+    try {
+        const t = sessionStorage.getItem('gdriveToken');
+        const exp = parseInt(sessionStorage.getItem('gdriveTokenExpiry') || '0');
+        if (t && Date.now() < exp) {
+            googleAccessToken = t;
+            tokenExpiry = exp;
+            return true;
+        }
+    } catch (e) {}
+    return false;
+}
+
+function isGoogleTokenValid() {
+    return googleAccessToken && Date.now() < tokenExpiry;
+}
+
+async function ensureDriveToken() {
+    if (isGoogleTokenValid()) return true;
+    return await authorizeDrive();
+}
+
+async function authorizeDrive() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/drive.file');
+    try {
+        const result = await currentUser.reauthenticateWithPopup(provider);
+        if (result.credential && result.credential.accessToken) {
+            storeGoogleToken(result.credential.accessToken);
+            backupSettings.driveEnabled = true;
+            try { localStorage.setItem('driveBackupEnabled', 'true'); } catch (e) {}
+            await saveBackupSettings();
+            updateDriveStatusUI(true);
+            return true;
+        }
+    } catch (err) {
+        console.error('Drive auth error:', err);
+        if (err.code !== 'auth/popup-closed-by-user') {
+            alert('Erreur d\'autorisation Google Drive : ' + err.message);
+        }
+    }
+    return false;
+}
+
+// -- Google Drive API helpers --
+async function driveFetch(url, options = {}) {
+    const headers = { 'Authorization': 'Bearer ' + googleAccessToken, ...(options.headers || {}) };
+    const res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+        googleAccessToken = null;
+        tokenExpiry = 0;
+        return null;
+    }
+    return res;
+}
+
+async function driveGetOrCreateFolder() {
+    // Check cached folder
+    if (backupSettings.driveFolderId) {
+        const res = await driveFetch('https://www.googleapis.com/drive/v3/files/' + backupSettings.driveFolderId + '?fields=id,trashed');
+        if (res && res.ok) {
+            const data = await res.json();
+            if (!data.trashed) return backupSettings.driveFolderId;
+        }
+        backupSettings.driveFolderId = null;
+    }
+    // Search existing
+    const q = encodeURIComponent("name='" + DRIVE_FOLDER_NAME + "' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+    const searchRes = await driveFetch('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name)');
+    if (searchRes && searchRes.ok) {
+        const data = await searchRes.json();
+        if (data.files && data.files.length > 0) {
+            backupSettings.driveFolderId = data.files[0].id;
+            await saveBackupSettings();
+            return data.files[0].id;
+        }
+    }
+    // Create folder
+    const createRes = await driveFetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: DRIVE_FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' })
+    });
+    if (createRes && createRes.ok) {
+        const data = await createRes.json();
+        backupSettings.driveFolderId = data.id;
+        await saveBackupSettings();
+        return data.id;
+    }
+    return null;
+}
+
+async function driveUploadBackup(jsonData, fileName) {
+    const folderId = await driveGetOrCreateFolder();
+    if (!folderId) return null;
+
+    const metadata = { name: fileName, mimeType: 'application/json', parents: [folderId] };
+    const boundary = '---backup_boundary_' + Date.now();
+    const body = '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' +
+        JSON.stringify(metadata) + '\r\n--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' +
+        jsonData + '\r\n--' + boundary + '--';
+
+    const res = await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,size,createdTime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'multipart/related; boundary=' + boundary },
+        body
+    });
+    if (res && res.ok) return await res.json();
+    return null;
+}
+
+async function driveListBackups() {
+    if (!backupSettings.driveFolderId) return [];
+    const q = encodeURIComponent("'" + backupSettings.driveFolderId + "' in parents and trashed=false");
+    const res = await driveFetch('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name,size,createdTime)&orderBy=createdTime desc&pageSize=50');
+    if (res && res.ok) {
+        const data = await res.json();
+        return data.files || [];
+    }
+    return [];
+}
+
+async function driveDownloadBackup(fileId) {
+    const res = await driveFetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media');
+    if (res && res.ok) return await res.json();
+    return null;
+}
+
+async function driveDeleteFile(fileId) {
+    const res = await driveFetch('https://www.googleapis.com/drive/v3/files/' + fileId, { method: 'DELETE' });
+    return res && res.ok;
+}
+
+async function driveCleanupOldBackups() {
+    const files = await driveListBackups();
+    if (files.length > MAX_DRIVE_BACKUPS) {
+        const toDelete = files.slice(MAX_DRIVE_BACKUPS);
+        for (const file of toDelete) {
+            await driveDeleteFile(file.id);
+        }
+    }
+}
+
+// -- Firestore snapshots (versioning local) --
+function getSnapshotsRef() {
+    return db.collection('users').doc(currentUser.uid).collection('snapshots');
+}
+
+async function createFirestoreSnapshot(type) {
+    if (!currentUser || vinyls.length === 0) return null;
+    const data = JSON.stringify(vinyls);
+    if (data.length > 800000) {
+        console.warn('Snapshot trop volumineux pour Firestore (' + Math.round(data.length / 1024) + ' Ko)');
+        return null;
+    }
+    const ref = await getSnapshotsRef().add({
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        type: type,
+        count: vinyls.length,
+        data: data
+    });
+    await cleanupFirestoreSnapshots();
+    return ref.id;
+}
+
+async function getFirestoreSnapshots() {
+    if (!currentUser) return [];
+    const snapshot = await getSnapshotsRef().orderBy('timestamp', 'desc').limit(MAX_FIRESTORE_SNAPSHOTS).get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+async function restoreFromData(dataArray, source) {
+    if (!Array.isArray(dataArray) || dataArray.length === 0) {
+        alert('Données de sauvegarde invalides.');
+        return;
+    }
+    if (!confirm('Restaurer ' + dataArray.length + ' vinyle(s) depuis ' + source + ' ?\nLes données actuelles seront remplacées.\n\nUn point de restauration sera créé avant.')) return;
+
+    // Create safety snapshot before restore
+    await createFirestoreSnapshot('auto');
+
+    // Clear current data
+    const currentDocs = await getUserVinylsRef().get();
+    const currentIds = currentDocs.docs.map(d => d.id);
+    for (let i = 0; i < currentIds.length; i += 500) {
+        const batch = db.batch();
+        currentIds.slice(i, i + 500).forEach(id => batch.delete(getUserVinylsRef().doc(id)));
+        await batch.commit();
+    }
+
+    // Import backup data
+    dataArray.forEach(v => { if (!v.id) v.id = crypto.randomUUID(); });
+    await firestoreBatchAdd(dataArray);
+    alert('Restauration terminée ! ' + dataArray.length + ' vinyle(s) restauré(s).');
+}
+
+async function cleanupFirestoreSnapshots() {
+    const snapshots = await getSnapshotsRef().orderBy('timestamp', 'desc').get();
+    if (snapshots.size > MAX_FIRESTORE_SNAPSHOTS) {
+        const toDelete = snapshots.docs.slice(MAX_FIRESTORE_SNAPSHOTS);
+        for (let i = 0; i < toDelete.length; i += 500) {
+            const batch = db.batch();
+            toDelete.slice(i, i + 500).forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+        }
+    }
+}
+
+// -- Backup settings persistence --
+async function loadBackupSettings() {
+    if (!currentUser) return;
+    const doc = await db.collection('users').doc(currentUser.uid).get();
+    if (doc.exists && doc.data().backupSettings) {
+        Object.assign(backupSettings, doc.data().backupSettings);
+    }
+}
+
+async function saveBackupSettings() {
+    if (!currentUser) return;
+    await db.collection('users').doc(currentUser.uid).set({ backupSettings }, { merge: true });
+}
+
+// -- Backup scheduling --
+let backupIntervalId = null;
+
+async function initBackupScheduler() {
+    await loadBackupSettings();
+    restoreGoogleToken();
+    updateBackupUI();
+    checkAndRunBackup();
+    if (backupIntervalId) clearInterval(backupIntervalId);
+    backupIntervalId = setInterval(checkAndRunBackup, 30 * 60 * 1000);
+}
+
+async function checkAndRunBackup() {
+    if (backupSettings.frequency === 'manual') return;
+    if (!backupSettings.lastBackup) {
+        await runAutomaticBackup();
+        return;
+    }
+    const lastBackup = typeof backupSettings.lastBackup === 'string' ? new Date(backupSettings.lastBackup) : (backupSettings.lastBackup.toDate ? backupSettings.lastBackup.toDate() : new Date(backupSettings.lastBackup));
+    const diffHours = (Date.now() - lastBackup.getTime()) / (1000 * 60 * 60);
+    if (backupSettings.frequency === 'daily' && diffHours >= 24) {
+        await runAutomaticBackup();
+    } else if (backupSettings.frequency === 'weekly' && diffHours >= 168) {
+        await runAutomaticBackup();
+    }
+}
+
+async function runAutomaticBackup() {
+    try {
+        await createFirestoreSnapshot('auto');
+
+        if (backupSettings.driveEnabled && isGoogleTokenValid()) {
+            const jsonData = JSON.stringify(vinyls, null, 2);
+            const now = new Date();
+            const fileName = 'vinyles_' + now.toISOString().slice(0, 10) + '_' + now.toTimeString().slice(0, 5).replace(':', 'h') + '.json';
+            await driveUploadBackup(jsonData, fileName);
+            await driveCleanupOldBackups();
+        }
+
+        backupSettings.lastBackup = new Date().toISOString();
+        await saveBackupSettings();
+        updateBackupUI();
+        console.log('Backup automatique effectué');
+    } catch (err) {
+        console.error('Erreur backup auto:', err);
+    }
+}
+
+async function runManualDriveBackup() {
+    if (!(await ensureDriveToken())) {
+        alert('Impossible de se connecter à Google Drive.');
+        return;
+    }
+    try {
+        const jsonData = JSON.stringify(vinyls, null, 2);
+        const now = new Date();
+        const fileName = 'vinyles_' + now.toISOString().slice(0, 10) + '_' + now.toTimeString().slice(0, 5).replace(':', 'h') + '.json';
+
+        await createFirestoreSnapshot('manual');
+        const result = await driveUploadBackup(jsonData, fileName);
+        if (result) {
+            await driveCleanupOldBackups();
+            backupSettings.lastBackup = new Date().toISOString();
+            await saveBackupSettings();
+            updateBackupUI();
+            alert('Sauvegarde envoyée sur Google Drive !\nFichier : ' + fileName);
+            await refreshBackupList();
+        } else {
+            alert('Erreur lors de l\'envoi sur Google Drive.');
+        }
+    } catch (err) {
+        console.error('Manual backup error:', err);
+        alert('Erreur de sauvegarde : ' + err.message);
+    }
+}
+
+// -- Backup UI --
+function updateDriveStatusUI(connected) {
+    const statusEl = document.getElementById('driveStatus');
+    const connectBtn = document.getElementById('driveConnectBtn');
+    const backupNowBtn = document.getElementById('driveBackupNowBtn');
+    if (!statusEl) return;
+
+    if (connected) {
+        statusEl.innerHTML = '<span class="backup-status-dot connected"></span><span>Connecté</span>';
+        connectBtn.textContent = 'Reconnecter';
+        connectBtn.classList.remove('btn-primary');
+        connectBtn.classList.add('btn-secondary');
+        backupNowBtn.classList.remove('hidden');
+    } else {
+        statusEl.innerHTML = '<span class="backup-status-dot disconnected"></span><span>Non connecté</span>';
+        connectBtn.textContent = 'Connecter Google Drive';
+        connectBtn.classList.add('btn-primary');
+        connectBtn.classList.remove('btn-secondary');
+        backupNowBtn.classList.add('hidden');
+    }
+}
+
+function updateBackupUI() {
+    const freqEl = document.getElementById('backupFrequency');
+    const lastInfoEl = document.getElementById('lastBackupInfo');
+    if (!freqEl) return;
+
+    freqEl.value = backupSettings.frequency;
+
+    if (backupSettings.lastBackup) {
+        const d = typeof backupSettings.lastBackup === 'string' ? new Date(backupSettings.lastBackup) : (backupSettings.lastBackup.toDate ? backupSettings.lastBackup.toDate() : new Date(backupSettings.lastBackup));
+        lastInfoEl.textContent = 'Dernière sauvegarde : ' + d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    } else {
+        lastInfoEl.textContent = 'Aucune sauvegarde effectuée';
+    }
+
+    updateDriveStatusUI(backupSettings.driveEnabled && isGoogleTokenValid());
+}
+
+async function refreshBackupList() {
+    const listEl = document.getElementById('backupList');
+    if (!listEl) return;
+    listEl.innerHTML = '<p class="backup-empty">Chargement...</p>';
+
+    const items = [];
+
+    // Firestore snapshots
+    try {
+        const snapshots = await getFirestoreSnapshots();
+        snapshots.forEach(s => {
+            const ts = s.timestamp && s.timestamp.toDate ? s.timestamp.toDate() : (s.timestamp ? new Date(s.timestamp) : new Date());
+            items.push({ source: 'firestore', id: s.id, date: ts, count: s.count, subType: s.type });
+        });
+    } catch (e) { console.error('Erreur chargement snapshots:', e); }
+
+    // Drive backups
+    if (backupSettings.driveEnabled && isGoogleTokenValid()) {
+        try {
+            const driveFiles = await driveListBackups();
+            driveFiles.forEach(f => {
+                items.push({ source: 'drive', id: f.id, date: new Date(f.createdTime), name: f.name, size: f.size });
+            });
+        } catch (e) { console.error('Erreur chargement Drive:', e); }
+    }
+
+    items.sort((a, b) => b.date - a.date);
+
+    if (items.length === 0) {
+        listEl.innerHTML = '<p class="backup-empty">Aucune sauvegarde disponible</p>';
+        return;
+    }
+
+    listEl.innerHTML = items.map(item => {
+        const dateStr = item.date.toLocaleDateString('fr-FR') + ' ' + item.date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+        if (item.source === 'drive') {
+            const sizeKB = item.size ? Math.round(item.size / 1024) : '?';
+            return '<div class="backup-item" data-source="drive" data-id="' + esc(item.id) + '">' +
+                '<div class="backup-item-info">' +
+                    '<div class="backup-item-date">' + esc(dateStr) + ' <span class="backup-item-type backup-type-drive">Drive</span></div>' +
+                    '<div class="backup-item-meta">' + esc(item.name) + ' · ' + sizeKB + ' Ko</div>' +
+                '</div>' +
+                '<div class="backup-item-actions">' +
+                    '<button class="btn btn-small backup-restore-btn" title="Restaurer"><span class="material-symbols-outlined">restore</span></button>' +
+                    '<button class="btn btn-small backup-download-btn" title="Télécharger"><span class="material-symbols-outlined">download</span></button>' +
+                    '<button class="btn btn-small backup-delete-btn" title="Supprimer"><span class="material-symbols-outlined">delete</span></button>' +
+                '</div></div>';
+        } else {
+            const typeLabel = item.subType === 'auto' ? 'Auto' : 'Manuel';
+            const typeClass = item.subType === 'auto' ? 'backup-type-auto' : 'backup-type-manual';
+            return '<div class="backup-item" data-source="firestore" data-id="' + esc(item.id) + '">' +
+                '<div class="backup-item-info">' +
+                    '<div class="backup-item-date">' + esc(dateStr) + ' <span class="backup-item-type ' + typeClass + '">' + typeLabel + '</span></div>' +
+                    '<div class="backup-item-meta">' + item.count + ' vinyle(s) · Local</div>' +
+                '</div>' +
+                '<div class="backup-item-actions">' +
+                    '<button class="btn btn-small backup-restore-btn" title="Restaurer"><span class="material-symbols-outlined">restore</span></button>' +
+                    '<button class="btn btn-small backup-delete-btn" title="Supprimer"><span class="material-symbols-outlined">delete</span></button>' +
+                '</div></div>';
+        }
+    }).join('');
+
+    // Event delegation for backup actions
+    listEl.querySelectorAll('.backup-restore-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const item = e.target.closest('.backup-item');
+            const source = item.dataset.source;
+            const id = item.dataset.id;
+            if (source === 'firestore') {
+                const doc = await getSnapshotsRef().doc(id).get();
+                if (!doc.exists) { alert('Snapshot introuvable.'); return; }
+                const data = JSON.parse(doc.data().data);
+                await restoreFromData(data, 'le snapshot local');
+            } else {
+                if (!(await ensureDriveToken())) { alert('Token Drive expiré. Reconnectez Google Drive.'); return; }
+                const data = await driveDownloadBackup(id);
+                await restoreFromData(data, 'Google Drive');
+            }
+        });
+    });
+
+    listEl.querySelectorAll('.backup-download-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const item = e.target.closest('.backup-item');
+            const id = item.dataset.id;
+            if (!(await ensureDriveToken())) { alert('Token Drive expiré. Reconnectez Google Drive.'); return; }
+            const data = await driveDownloadBackup(id);
+            if (data) {
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const meta = item.querySelector('.backup-item-meta');
+                a.download = meta ? meta.textContent.split('·')[0].trim() : 'backup.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            } else {
+                alert('Erreur de téléchargement.');
+            }
+        });
+    });
+
+    listEl.querySelectorAll('.backup-delete-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            if (!confirm('Supprimer cette sauvegarde ?')) return;
+            const item = e.target.closest('.backup-item');
+            const source = item.dataset.source;
+            const id = item.dataset.id;
+            if (source === 'drive') {
+                if (!(await ensureDriveToken())) { alert('Token Drive expiré.'); return; }
+                await driveDeleteFile(id);
+            } else {
+                await getSnapshotsRef().doc(id).delete();
+            }
+            await refreshBackupList();
+        });
+    });
+}
+
+// -- Backup event listeners --
+document.getElementById('backupBtn').addEventListener('click', async () => {
+    document.getElementById('backupModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    updateBackupUI();
+    await refreshBackupList();
+});
+
+document.getElementById('backupModalClose').addEventListener('click', () => {
+    document.getElementById('backupModal').classList.add('hidden');
+    document.body.style.overflow = '';
+});
+
+document.querySelector('#backupModal .modal-overlay').addEventListener('click', () => {
+    document.getElementById('backupModal').classList.add('hidden');
+    document.body.style.overflow = '';
+});
+
+document.getElementById('driveConnectBtn').addEventListener('click', async () => {
+    await authorizeDrive();
+    await refreshBackupList();
+});
+
+document.getElementById('driveBackupNowBtn').addEventListener('click', runManualDriveBackup);
+
+document.getElementById('snapshotBtn').addEventListener('click', async () => {
+    const id = await createFirestoreSnapshot('manual');
+    if (id) {
+        alert('Point de restauration créé !');
+        await refreshBackupList();
+    } else {
+        alert('Erreur : collection vide ou trop volumineuse pour un snapshot local.\nUtilisez Google Drive pour les grandes collections.');
+    }
+});
+
+document.getElementById('backupFrequency').addEventListener('change', async (e) => {
+    backupSettings.frequency = e.target.value;
+    await saveBackupSettings();
+    updateBackupUI();
+    if (backupSettings.frequency !== 'manual') {
+        checkAndRunBackup();
+    }
+});
+
 // === Export CSV ===
 document.getElementById('exportCsvBtn').addEventListener('click', () => {
     const headers = ['Catégorie', 'Classé', 'Artiste', 'Album', 'Année', 'Label', 'Référence', 'Genre', 'Goût', 'Audio', 'Énergie', 'Nb', 'Prix', 'Acheté', 'Commentaire', 'Pochette', 'Discogs URL'];
@@ -2056,6 +2585,9 @@ document.addEventListener('keydown', (e) => {
             closeGenreModal();
         } else if (!adminModal.classList.contains('hidden')) {
             adminModal.classList.add('hidden');
+            document.body.style.overflow = '';
+        } else if (!document.getElementById('backupModal').classList.contains('hidden')) {
+            document.getElementById('backupModal').classList.add('hidden');
             document.body.style.overflow = '';
         } else if (!tokenModal.classList.contains('hidden')) {
             tokenModal.classList.add('hidden');

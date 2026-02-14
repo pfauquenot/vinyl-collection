@@ -61,6 +61,7 @@
                         <button class="hamburger-item" id="exportBtn"><span class="material-symbols-outlined">download</span> Exporter JSON</button>
                         <div class="hamburger-separator guest-hidden"></div>
                         <button class="hamburger-item guest-hidden" id="resetDiscogsTokenBtn"><span class="material-symbols-outlined">key</span> Token Discogs</button>
+                        <button class="hamburger-item guest-hidden" id="backupBtn"><span class="material-symbols-outlined">cloud_upload</span> Sauvegarde</button>
                         <div class="hamburger-separator admin-only hidden"></div>
                         <button class="hamburger-item admin-only hidden" id="adminUsersBtn"><span class="material-symbols-outlined">group</span> Utilisateurs</button>
                         <button class="hamburger-item hamburger-danger admin-only hidden" id="clearDbBtn"><span class="material-symbols-outlined">delete_sweep</span> Vider la base</button>
@@ -361,6 +362,64 @@
                 <div class="form-actions-right" style="margin-top:12px">
                     <button type="button" id="tokenCancelBtn" class="btn btn-secondary">Annuler</button>
                     <button type="button" id="tokenSaveBtn" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Sauvegarde -->
+        <div id="backupModal" class="modal hidden">
+            <div class="modal-overlay"></div>
+            <div class="modal-content modal-backup">
+                <div class="modal-header">
+                    <h2>Sauvegarde & Historique</h2>
+                    <button id="backupModalClose" class="btn-close">&times;</button>
+                </div>
+
+                <!-- Google Drive -->
+                <div class="backup-section">
+                    <h3 class="backup-section-title">
+                        <span class="material-symbols-outlined">cloud</span>
+                        Google Drive
+                    </h3>
+                    <div id="driveStatus" class="backup-drive-status">
+                        <span class="backup-status-dot disconnected"></span>
+                        <span>Non connecté</span>
+                    </div>
+                    <div class="backup-drive-actions">
+                        <button id="driveConnectBtn" class="btn btn-primary btn-small">Connecter Google Drive</button>
+                        <button id="driveBackupNowBtn" class="btn btn-secondary btn-small hidden">Sauvegarder maintenant</button>
+                    </div>
+                </div>
+
+                <!-- Planification -->
+                <div class="backup-section">
+                    <h3 class="backup-section-title">
+                        <span class="material-symbols-outlined">schedule</span>
+                        Planification
+                    </h3>
+                    <div class="backup-schedule-row">
+                        <label for="backupFrequency">Fréquence :</label>
+                        <select id="backupFrequency">
+                            <option value="manual">Manuelle</option>
+                            <option value="daily">Quotidienne</option>
+                            <option value="weekly">Hebdomadaire</option>
+                        </select>
+                    </div>
+                    <div id="lastBackupInfo" class="backup-last-info">Aucune sauvegarde effectuée</div>
+                </div>
+
+                <!-- Historique des versions -->
+                <div class="backup-section">
+                    <h3 class="backup-section-title">
+                        <span class="material-symbols-outlined">history</span>
+                        Historique des versions
+                    </h3>
+                    <div class="backup-snapshot-actions">
+                        <button id="snapshotBtn" class="btn btn-small">Créer un point de restauration</button>
+                    </div>
+                    <div id="backupList" class="backup-list">
+                        <p class="backup-empty">Aucune sauvegarde disponible</p>
+                    </div>
                 </div>
             </div>
         </div>
