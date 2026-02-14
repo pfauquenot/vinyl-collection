@@ -341,8 +341,7 @@ function render() {
     const list = getFilteredAndSorted();
 
     // Stats
-    const totalPrix = vinyls.reduce((s, v) => s + (parseFloat(v.prix) || 0), 0);
-    statsEl.textContent = `${vinyls.length} vinyle${vinyls.length > 1 ? 's' : ''} · ${totalPrix.toFixed(0)} € · ${list.length} affiché${list.length > 1 ? 's' : ''}`;
+    statsEl.textContent = `${vinyls.length} vinyle${vinyls.length > 1 ? 's' : ''} · ${list.length} affiché${list.length > 1 ? 's' : ''}`;
 
     if (list.length === 0) {
         vinylTable.classList.add('hidden');
