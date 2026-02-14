@@ -215,6 +215,15 @@ header h1 {
     color: var(--accent);
 }
 
+.vinyl-table thead th.sorted {
+    color: var(--accent);
+}
+
+.sort-arrow {
+    font-weight: 700;
+    font-size: 0.7rem;
+}
+
 .vinyl-table tbody tr {
     border-bottom: 1px solid var(--border-light);
     cursor: pointer;

@@ -31,8 +31,8 @@ const ENERGIE_LABELS = {
 
 let vinyls = [];
 let editingId = null;
-let sortAsc = true;
-let currentSort = 'artiste';
+let sortAsc = localStorage.getItem('sortAsc') !== 'false';
+let currentSort = localStorage.getItem('currentSort') || 'artiste';
 let selectedIds = new Set();
 
 // === Storage ===
@@ -83,7 +83,7 @@ const galleryView = document.getElementById('galleryView');
 const tableView = document.getElementById('tableView');
 const viewTableBtn = document.getElementById('viewTable');
 const viewGalleryBtn = document.getElementById('viewGallery');
-let currentView = 'gallery';
+let currentView = localStorage.getItem('currentView') || 'gallery';
 const coverSearchBtn = document.getElementById('coverSearchBtn');
 
 // === Cover Art Search (Deezer JSONP — works from file://, no CORS, no token) ===
@@ -603,10 +603,21 @@ deleteBtn.addEventListener('click', () => {
 });
 
 // Filters & search
+function saveFilters() {
+    localStorage.setItem('filters', JSON.stringify({
+        categorie: filterCategorie.value,
+        goût: filterGoût.value,
+        energie: filterEnergie.value,
+        classé: filterClassé.value
+    }));
+}
+
 function clearSelectionAndRender() {
     selectedIds.clear();
     selectAllCb.checked = false;
+    saveFilters();
     render();
+    updateResetButton();
 }
 let searchTimeout;
 searchInput.addEventListener('input', () => {
@@ -618,19 +629,61 @@ filterGoût.addEventListener('change', clearSelectionAndRender);
 filterEnergie.addEventListener('change', clearSelectionAndRender);
 filterClassé.addEventListener('change', clearSelectionAndRender);
 
+// Reset filters button
+const resetFiltersBtn = document.getElementById('resetFilters');
+
+function updateResetButton() {
+    const hasFilter = searchInput.value || filterCategorie.value || filterGoût.value || filterEnergie.value || filterClassé.value;
+    resetFiltersBtn.classList.toggle('hidden', !hasFilter);
+}
+
+resetFiltersBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    filterCategorie.value = '';
+    filterGoût.value = '';
+    filterEnergie.value = '';
+    filterClassé.value = '';
+    resetFiltersBtn.classList.add('hidden');
+    clearSelectionAndRender();
+});
+
 sortBySelect.addEventListener('change', () => {
     currentSort = sortBySelect.value;
+    localStorage.setItem('currentSort', currentSort);
+    updateSortIndicator();
     render();
 });
 
 sortDirBtn.addEventListener('click', () => {
     sortAsc = !sortAsc;
     sortDirBtn.textContent = sortAsc ? '↑' : '↓';
+    localStorage.setItem('sortAsc', sortAsc);
+    updateSortIndicator();
     render();
 });
 
 // Column header sort
-document.querySelectorAll('.vinyl-table thead th[data-sort]').forEach(th => {
+const sortableHeaders = document.querySelectorAll('.vinyl-table thead th[data-sort]');
+
+function updateSortIndicator() {
+    sortableHeaders.forEach(th => {
+        const col = th.dataset.sort;
+        // Remove old indicator
+        const old = th.querySelector('.sort-arrow');
+        if (old) old.remove();
+        th.classList.remove('sorted');
+
+        if (col === currentSort) {
+            th.classList.add('sorted');
+            const arrow = document.createElement('span');
+            arrow.className = 'sort-arrow';
+            arrow.textContent = sortAsc ? ' ↑' : ' ↓';
+            th.appendChild(arrow);
+        }
+    });
+}
+
+sortableHeaders.forEach(th => {
     th.addEventListener('click', () => {
         const col = th.dataset.sort;
         if (currentSort === col) {
@@ -642,6 +695,9 @@ document.querySelectorAll('.vinyl-table thead th[data-sort]').forEach(th => {
             sortAsc = true;
             sortDirBtn.textContent = '↑';
         }
+        localStorage.setItem('currentSort', currentSort);
+        localStorage.setItem('sortAsc', sortAsc);
+        updateSortIndicator();
         render();
     });
 });
@@ -676,6 +732,7 @@ coverUrlInput.addEventListener('keydown', (e) => {
 // View toggle
 viewTableBtn.addEventListener('click', () => {
     currentView = 'table';
+    localStorage.setItem('currentView', 'table');
     viewTableBtn.classList.add('active');
     viewGalleryBtn.classList.remove('active');
     render();
@@ -683,6 +740,7 @@ viewTableBtn.addEventListener('click', () => {
 
 viewGalleryBtn.addEventListener('click', () => {
     currentView = 'gallery';
+    localStorage.setItem('currentView', 'gallery');
     viewGalleryBtn.classList.add('active');
     viewTableBtn.classList.remove('active');
     render();
@@ -978,5 +1036,25 @@ window.addEventListener('resize', updateHeaderHeight);
 document.getElementById('année').max = new Date().getFullYear() + 1;
 loadVinyls();
 populateFilters();
+// Restaurer filtres persistés
+try {
+    const saved = JSON.parse(localStorage.getItem('filters') || '{}');
+    if (saved.categorie) filterCategorie.value = saved.categorie;
+    if (saved.goût) filterGoût.value = saved.goût;
+    if (saved.energie) filterEnergie.value = saved.energie;
+    if (saved.classé) filterClassé.value = saved.classé;
+} catch {}
+// Restaurer le tri
+sortBySelect.value = currentSort;
+sortDirBtn.textContent = sortAsc ? '↑' : '↓';
+// Restaurer l'état des boutons de vue
+if (currentView === 'table') {
+    viewTableBtn.classList.add('active');
+    viewGalleryBtn.classList.remove('active');
+} else {
+    viewGalleryBtn.classList.add('active');
+    viewTableBtn.classList.remove('active');
+}
 render();
+updateSortIndicator();
 updateHeaderHeight();
