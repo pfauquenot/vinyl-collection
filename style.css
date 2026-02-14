@@ -165,7 +165,7 @@ header h1 {
     border-bottom: 1px solid var(--border-light);
     background: var(--bg-header);
     position: sticky;
-    top: 106px;
+    top: var(--header-height, 106px);
     z-index: 99;
     -webkit-overflow-scrolling: touch;
 }
@@ -213,6 +213,15 @@ header h1 {
 
 .vinyl-table thead th[data-sort]:hover {
     color: var(--accent);
+}
+
+.vinyl-table thead th.sorted {
+    color: var(--accent);
+}
+
+.sort-arrow {
+    font-weight: 700;
+    font-size: 0.7rem;
 }
 
 .vinyl-table tbody tr {
@@ -401,8 +410,8 @@ header h1 {
 }
 
 .tag-categorie {
-    background: var(--accent-light);
-    color: var(--accent);
+    background: var(--accent);
+    color: #fff;
 }
 
 .badge-classé {

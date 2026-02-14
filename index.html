@@ -48,6 +48,9 @@
                 <option value="Oui">Oui</option>
                 <option value="Non">Non</option>
             </select>
+            <select id="filterLabel">
+                <option value="">Tous labels</option>
+            </select>
             <select id="sortBy">
                 <option value="artiste">Tri: Artiste</option>
                 <option value="album">Tri: Album</option>
@@ -60,6 +63,7 @@
                 <option value="dateAjout">Tri: Date ajout</option>
             </select>
             <button id="sortDir" class="btn btn-small" title="Inverser le tri">↑</button>
+            <button id="resetFilters" class="btn btn-small hidden" title="Réinitialiser les filtres">✕ Reset</button>
             <div class="view-toggle">
                 <button id="viewTable" class="btn btn-small view-btn" title="Vue tableau">☰</button>
                 <button id="viewGallery" class="btn btn-small view-btn active" title="Vue galerie">▦</button>
@@ -129,7 +133,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="année">Année</label>
-                                <input type="number" id="année" name="année" min="1900" max="2030">
+                                <input type="number" id="année" name="année" min="1900">
                             </div>
                         </div>
                     </div>
