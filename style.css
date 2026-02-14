@@ -575,8 +575,8 @@ header .btn-small:hover {
 .tag-style-sm {
     display: inline-block;
     padding: 0 4px;
-    background: rgba(47, 125, 161, 0.12);
-    color: var(--secondary);
+    background: var(--accent);
+    color: #fff;
     border-radius: 8px;
     font-size: 0.65rem;
 }
