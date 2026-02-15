@@ -1,4 +1,4 @@
-# Vinylthèque
+# Ma Collection Vinyles
 
 Application web de gestion de collection de disques vinyles. Cataloguez, notez, filtrez et recherchez vos vinyles, avec récupération automatique des pochettes via l'API Deezer.
 
@@ -73,15 +73,14 @@ L'application propose deux modes d'affichage :
 
 ## Stack technique
 
-| Element          | Technologie                                            |
-| ---------------- | ------------------------------------------------------ |
-| Langage          | HTML5, CSS3, JavaScript vanilla (ES2020+)              |
-| Framework        | Aucun (zero dependance, zero `node_modules`)           |
-| Base de donnees  | Cloud Firestore (persistance offline activee)          |
-| Authentification | Firebase Auth (Google sign-in, roles admin/user/guest) |
-| API externes     | Deezer (JSONP), Discogs (token personnel), Google Drive|
-| Police           | Google Fonts — Inter (300, 400, 500, 600, 700)         |
-| Hebergement      | Firebase Hosting (CI/CD via GitHub Actions)             |
+| Element         | Technologie                                            |
+| --------------- | ------------------------------------------------------ |
+| Langage         | HTML5, CSS3, JavaScript vanilla (ES2020+)              |
+| Framework       | Aucun                                                  |
+| Base de donnees | `localStorage` du navigateur                           |
+| API externe     | Deezer (JSONP, sans cle d'API, sans probleme de CORS)  |
+| Police          | Google Fonts — Inter (300, 400, 500, 600, 700)         |
+| Hebergement     | Firebase Hosting                                       |
 
 ---
 
@@ -165,34 +164,18 @@ firebase hosting:channel:deploy preview
 
 ```
 vinyl-collection/
-├── index.html                          # Page unique — structure HTML, formulaire modal, filtres, tableau, galerie
-├── app.js                              # Logique complete — CRUD, Firebase Auth, Firestore, filtres, tri, import/export
-├── style.css                           # Styles — variables CSS, responsive mobile/desktop, animations
-├── firebase.json                       # Configuration Firebase Hosting
-├── .firebaserc                         # Projet Firebase par defaut (vinyl-pfa)
-├── .github/workflows/firebase-deploy.yml  # CI/CD — deploiement automatique sur push main
-├── CLAUDE.md                           # Instructions et conventions pour les agents IA
-└── README.md                           # Ce fichier
+├── index.html   # Page unique — structure HTML, formulaire modal, filtres, tableau, galerie
+├── app.js       # Logique complete — CRUD, rendu, filtres, tri, import/export, recherche pochettes
+├── style.css    # Styles — variables CSS, responsive mobile/desktop, animations
+├── CLAUDE.md    # Instructions et conventions pour les agents IA
+└── README.md    # Ce fichier
 ```
-
----
-
-## Securite — Cle API Firebase
-
-La cle API Firebase presente dans `app.js` est **publique par design** : elle identifie le projet Firebase cote client mais ne donne pas acces aux donnees (protegees par les Security Rules Firestore et Firebase Auth).
-
-Pour eviter tout abus, la cle doit etre **restreinte** dans la Google Cloud Console (projet `vinyl-pfa`) :
-
-1. **Restrictions par referents HTTP** : autoriser uniquement `vinyl-pfa.web.app/*`, `vinyl-pfa.firebaseapp.com/*` et `localhost/*`
-2. **Restrictions par API** : autoriser uniquement Cloud Firestore API, Identity Toolkit API, Token Service API et Google Drive API
 
 ---
 
 ## Donnees
 
-Les vinyles sont stockes dans **Cloud Firestore** (base de donnees Firebase), avec persistance offline activee. Chaque utilisateur dispose de sa propre collection, isolee par Firebase Auth. Les preferences d'interface (filtres, vue) sont stockees dans le `localStorage` du navigateur.
-
-Pour sauvegarder ou transferer votre collection, utilisez les boutons **Export JSON** / **Import JSON**.
+Les vinyles sont stockes dans le `localStorage` du navigateur. Pour sauvegarder ou transferer votre collection, utilisez les boutons **Export JSON** / **Import JSON**.
 
 Structure d'un enregistrement :
 
@@ -200,7 +183,7 @@ Structure d'un enregistrement :
 {
   id: "uuid",
   dateAjout: "2024-01-15T10:30:00.000Z",
-  categorie: ["Jazz", "Pop / Rock"],  // affiche "Rangement" dans l'UI
+  categorie: ["Jazz", "Pop / Rock"],
   classe: "Oui",
   artiste: "Miles Davis",
   album: "Kind of Blue",
@@ -212,11 +195,9 @@ Structure d'un enregistrement :
   energie: "2",     // 1 (Tres doux) a 6 (Explosif)
   nb: "42",
   prix: "35.00",
-  achete: "Discogs",               // affiche "Achete ou" dans l'UI
-  lieu: "PFA",                     // PFA | En livraison | A acheter | A vendre | Vendu
-  avisIA: "Texte libre",           // avis genere par IA
+  achete: "Discogs",
   commentaire: "Pressage original mono",
-  coverUrl: "https://..."          // affiche "URL cover" dans le CSV
+  coverUrl: "https://..."
 }
 ```
 
