@@ -61,7 +61,6 @@
                         <button class="hamburger-item" id="exportBtn"><span class="material-symbols-outlined">download</span> Exporter JSON</button>
                         <div class="hamburger-separator guest-hidden"></div>
                         <button class="hamburger-item guest-hidden" id="resetDiscogsTokenBtn"><span class="material-symbols-outlined">key</span> Token Discogs</button>
-                        <button class="hamburger-item guest-hidden" id="backupBtn"><span class="material-symbols-outlined">cloud_upload</span> Sauvegarde</button>
                         <div class="hamburger-separator admin-only hidden"></div>
                         <button class="hamburger-item admin-only hidden" id="adminUsersBtn"><span class="material-symbols-outlined">group</span> Utilisateurs</button>
                         <button class="hamburger-item hamburger-danger admin-only hidden" id="clearDbBtn"><span class="material-symbols-outlined">delete_sweep</span> Vider la base</button>
@@ -73,7 +72,7 @@
 
         <div class="filters" id="filtersBar">
             <select id="filterCategorie">
-                <option value="">Tous rangements</option>
+                <option value="">Toutes catégories</option>
             </select>
             <select id="filterGenre">
                 <option value="">Tous genres</option>
@@ -118,7 +117,7 @@
                 <thead>
                     <tr>
                         <th class="col-center col-check guest-hidden"><input type="checkbox" id="selectAll" title="Tout sélectionner"></th>
-                        <th>Rangement</th>
+                        <th>Catégorie</th>
                         <th data-sort="classé" class="col-center">Classé</th>
                         <th data-sort="artiste">Artiste</th>
                         <th data-sort="album">Album</th>
@@ -131,9 +130,7 @@
                         <th data-sort="energie">Énergie</th>
                         <th data-sort="nb" class="col-center">Nb</th>
                         <th data-sort="prix">Prix</th>
-                        <th>Acheté ou</th>
-                        <th>Lieu</th>
-                        <th>Avis IA</th>
+                        <th>Acheté</th>
                         <th>Commentaire</th>
                         <th class="col-center">Discogs</th>
                     </tr>
@@ -192,7 +189,7 @@
 
                     <div class="form-grid">
                         <div class="form-group full-width">
-                            <label>Rangement(s)</label>
+                            <label>Catégorie(s)</label>
                             <div class="checkbox-group" id="categorieGroup">
                                 <label><input type="checkbox" name="categorie" value="Jazz"> Jazz</label>
                                 <label><input type="checkbox" name="categorie" value="Jazz TBM"> Jazz TBM</label>
@@ -295,25 +292,8 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="acheté">Acheté ou</label>
+                            <label for="acheté">Acheté</label>
                             <input type="text" id="acheté" name="acheté" placeholder="Ex: Discogs, Fnac...">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="lieu">Lieu</label>
-                            <select id="lieu" name="lieu">
-                                <option value="">—</option>
-                                <option value="PFA">PFA</option>
-                                <option value="En livraison">En livraison</option>
-                                <option value="A acheter">A acheter</option>
-                                <option value="A vendre">A vendre</option>
-                                <option value="Vendu">Vendu</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group full-width">
-                            <label for="avisIA">Avis IA</label>
-                            <textarea id="avisIA" name="avisIA" rows="2"></textarea>
                         </div>
 
                         <div class="form-group full-width">
@@ -381,64 +361,6 @@
                 <div class="form-actions-right" style="margin-top:12px">
                     <button type="button" id="tokenCancelBtn" class="btn btn-secondary">Annuler</button>
                     <button type="button" id="tokenSaveBtn" class="btn btn-primary">Enregistrer</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal Sauvegarde -->
-        <div id="backupModal" class="modal hidden">
-            <div class="modal-overlay"></div>
-            <div class="modal-content modal-backup">
-                <div class="modal-header">
-                    <h2>Sauvegarde & Historique</h2>
-                    <button id="backupModalClose" class="btn-close">&times;</button>
-                </div>
-
-                <!-- Google Drive -->
-                <div class="backup-section">
-                    <h3 class="backup-section-title">
-                        <span class="material-symbols-outlined">cloud</span>
-                        Google Drive
-                    </h3>
-                    <div id="driveStatus" class="backup-drive-status">
-                        <span class="backup-status-dot disconnected"></span>
-                        <span>Non connecté</span>
-                    </div>
-                    <div class="backup-drive-actions">
-                        <button id="driveConnectBtn" class="btn btn-primary btn-small">Connecter Google Drive</button>
-                        <button id="driveBackupNowBtn" class="btn btn-secondary btn-small hidden">Sauvegarder maintenant</button>
-                    </div>
-                </div>
-
-                <!-- Planification -->
-                <div class="backup-section">
-                    <h3 class="backup-section-title">
-                        <span class="material-symbols-outlined">schedule</span>
-                        Planification
-                    </h3>
-                    <div class="backup-schedule-row">
-                        <label for="backupFrequency">Fréquence :</label>
-                        <select id="backupFrequency">
-                            <option value="manual">Manuelle</option>
-                            <option value="daily">Quotidienne</option>
-                            <option value="weekly">Hebdomadaire</option>
-                        </select>
-                    </div>
-                    <div id="lastBackupInfo" class="backup-last-info">Aucune sauvegarde effectuée</div>
-                </div>
-
-                <!-- Historique des versions -->
-                <div class="backup-section">
-                    <h3 class="backup-section-title">
-                        <span class="material-symbols-outlined">history</span>
-                        Historique des versions
-                    </h3>
-                    <div class="backup-snapshot-actions">
-                        <button id="snapshotBtn" class="btn btn-small">Créer un point de restauration</button>
-                    </div>
-                    <div id="backupList" class="backup-list">
-                        <p class="backup-empty">Aucune sauvegarde disponible</p>
-                    </div>
                 </div>
             </div>
         </div>

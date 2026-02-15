@@ -1,4 +1,4 @@
-# Vinylthèque
+# Ma Collection Vinyles
 
 Application web de gestion de collection de disques vinyles. Permet de cataloguer, noter, filtrer et rechercher ses vinyles, avec récupération automatique des pochettes via l'API Deezer.
 
@@ -8,12 +8,10 @@ Application web de gestion de collection de disques vinyles. Permet de catalogue
 | --------------- | -------------------------------------------------------- |
 | Langage         | HTML5, CSS3, JavaScript (vanilla ES2020+)                |
 | Framework       | Aucun (zéro dépendance, zéro `node_modules`)             |
-| Base de données | Cloud Firestore (persistance offline activée)            |
-| Authentification| Firebase Auth (Google sign-in, rôles admin/user/guest)   |
-| API externes    | Deezer (JSONP), Discogs (token personnel), Google Drive  |
+| Base de données | `localStorage` du navigateur (persistance côté client)   |
+| API externe     | Deezer (JSONP, sans clé d'API, sans CORS)                |
 | Police          | Google Fonts — Inter (300, 400, 500, 600, 700)           |
-| Hébergement     | Firebase Hosting (CI/CD via GitHub Actions)               |
-| Projet Firebase | `vinyl-pfa`                                              |
+| Hébergement     | Firebase Hosting (fichiers statiques)                    |
 
 ## Lancer le projet en local
 
@@ -62,28 +60,17 @@ firebase deploy
 firebase hosting:channel:deploy preview
 ```
 
-## Sécurité — Clé API Firebase
-
-La clé API Firebase (`AIzaSy...`) présente dans `app.js` est **publique par design** : elle identifie le projet Firebase côté client mais ne donne pas accès aux données (protégées par les Security Rules Firestore et Firebase Auth).
-
-Pour éviter tout abus, la clé doit être **restreinte** dans la [Google Cloud Console](https://console.cloud.google.com/apis/credentials?project=vinyl-pfa) :
-
-1. **Restrictions par référents HTTP** : autoriser uniquement `vinyl-pfa.web.app/*`, `vinyl-pfa.firebaseapp.com/*` et `localhost/*`
-2. **Restrictions par API** : autoriser uniquement Cloud Firestore API, Identity Toolkit API, Token Service API et Google Drive API
-
 ## Structure du projet
 
 ```
 vinyl-collection/
-├── index.html                          # Page unique — structure HTML, formulaire modal, filtres, tableau, galerie
-├── app.js                              # Logique complète — CRUD, rendu, filtres, tri, import/export, Firebase Auth, Firestore
-├── style.css                           # Styles — variables CSS, responsive mobile/desktop, animations
-├── firebase.json                       # Configuration Firebase Hosting
-├── .firebaserc                         # Projet Firebase par défaut (vinyl-pfa)
-├── .github/workflows/firebase-deploy.yml  # CI/CD — déploiement automatique sur push main
-├── CLAUDE.md                           # Ce fichier — conventions et instructions pour agents IA
-└── README.md                           # Documentation utilisateur
+├── index.html   # Page unique — structure HTML, formulaire modal, filtres, tableau, galerie
+├── app.js       # Logique complète — CRUD, rendu, filtres, tri, import/export, recherche pochettes
+├── style.css    # Styles — variables CSS, responsive mobile/desktop, animations
+└── CLAUDE.md    # Ce fichier
 ```
+
+Trois fichiers, zéro dossier imbriqué. Toute l'application tient dans ces fichiers.
 
 ## Conventions de code
 
@@ -100,8 +87,7 @@ vinyl-collection/
 - Constantes globales : `UPPER_SNAKE_CASE` (ex : `GOUT_LABELS`, `AUDIO_LABELS`, `ENERGIE_LABELS`)
 - Fonctions : `camelCase` descriptif (ex : `loadVinyls`, `saveVinyls`, `getFilteredAndSorted`, `openEdit`)
 - Identifiants DOM : `camelCase` (ex : `searchInput`, `vinylBody`, `coverSearchBtn`)
-- Architecture data-driven : le tableau `vinyls` (chargé depuis Firestore) est la source de vérité, `render()` rafraîchit l'affichage
-- Persistance : Firestore pour les données, `localStorage` uniquement pour les préférences UI (filtres, vue active, driveBackupEnabled)
+- Architecture data-driven : le tableau `vinyls` est la source de vérité, `render()` rafraîchit l'affichage
 - IDs des enregistrements : `crypto.randomUUID()`
 - Échappement HTML : via la fonction utilitaire `esc()` (crée un `div` temporaire avec `textContent`)
 - Pas de classes, pas de modules ES — tout est dans le scope global de `app.js`
@@ -128,7 +114,7 @@ vinyl-collection/
 {
   id: "uuid",
   dateAjout: "ISO 8601",
-  categorie: ["Jazz", "Pop / Rock"],   // tableau de strings — affiché "Rangement" dans l'UI
+  categorie: ["Jazz", "Pop / Rock"],   // tableau de strings
   classé: "Oui" | "Non",
   artiste: "Nom de l'artiste",
   album: "Titre de l'album",
@@ -140,11 +126,9 @@ vinyl-collection/
   energie: "1" à "6",                  // string numérique
   nb: "12",                            // nombre d'écoutes, string
   prix: "29.99",                       // string
-  acheté: "Discogs",                   // affiché "Acheté ou" dans l'UI
-  lieu: "PFA",                         // "PFA" | "En livraison" | "A acheter" | "A vendre" | "Vendu" | ""
-  avisIA: "Texte libre",              // avis généré par IA
+  acheté: "Discogs",
   commentaire: "Texte libre",
-  coverUrl: "https://..."             // affiché "URL cover" dans le CSV
+  coverUrl: "https://..."
 }
 ```
 
