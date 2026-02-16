@@ -2259,7 +2259,7 @@ async function checkAndRunBackup() {
 
 async function runAutomaticBackup() {
     try {
-        await createFirestoreSnapshot('auto');
+        try { await createFirestoreSnapshot('auto'); } catch (e) { console.warn('Snapshot Firestore ignoré:', e.message); }
 
         if (backupSettings.driveEnabled && isGoogleTokenValid()) {
             const jsonData = JSON.stringify(vinyls, null, 2);
@@ -2288,7 +2288,7 @@ async function runManualDriveBackup() {
         const now = new Date();
         const fileName = 'vinyles_' + now.toISOString().slice(0, 10) + '_' + now.toTimeString().slice(0, 5).replace(':', 'h') + '.json';
 
-        await createFirestoreSnapshot('manual');
+        try { await createFirestoreSnapshot('manual'); } catch (e) { console.warn('Snapshot Firestore ignoré:', e.message); }
         const result = await driveUploadBackup(jsonData, fileName);
         if (result) {
             await driveCleanupOldBackups();

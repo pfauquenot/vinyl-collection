@@ -168,7 +168,8 @@ vinyl-collection/
 ├── index.html                          # Page unique — structure HTML, formulaire modal, filtres, tableau, galerie
 ├── app.js                              # Logique complete — CRUD, Firebase Auth, Firestore, filtres, tri, import/export
 ├── style.css                           # Styles — variables CSS, responsive mobile/desktop, animations
-├── firebase.json                       # Configuration Firebase Hosting
+├── firebase.json                       # Configuration Firebase Hosting + Firestore
+├── firestore.rules                     # Regles de securite Firestore (users, vinyls, snapshots)
 ├── .firebaserc                         # Projet Firebase par defaut (vinyl-pfa)
 ├── .github/workflows/firebase-deploy.yml  # CI/CD — deploiement automatique sur push main
 ├── CLAUDE.md                           # Instructions et conventions pour les agents IA

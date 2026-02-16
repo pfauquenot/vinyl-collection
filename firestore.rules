@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Chaque utilisateur peut lire/écrire son propre document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Collection de vinyles
+      match /vinyls/{vinylId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Snapshots de sauvegarde
+      match /snapshots/{snapshotId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Admin : lecture de tous les utilisateurs (gestion des rôles)
+    match /users/{userId} {
+      allow read: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}
