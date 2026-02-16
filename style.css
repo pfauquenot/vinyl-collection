@@ -6,13 +6,13 @@
 }
 
 :root {
-    /* === Palette 3 — "Vinyle Rouge" === */
-    --color-header-bg: #620A23;
+    /* === Palette 1 — "Nuit Vinyle" === */
+    --color-header-bg: #051740;
     --color-bg: #F5F5F7;
     --color-btn-primary: #FF6533;
     --color-btn-secondary: #0A505C;
     --color-btn-tertiary: #878787;
-    --color-header-bg-light: rgba(98, 10, 35, 0.1);
+    --color-header-bg-light: rgba(5, 23, 64, 0.1);
     --color-btn-primary-hover: #E65B2E;
     --color-border: #E0E0E0;
     --color-text-muted: #878787;
@@ -64,7 +64,7 @@ header {
     background: var(--bg-header);
     padding: 14px 20px 10px;
     border-bottom: none;
-    box-shadow: 0 2px 8px rgba(98, 10, 35, 0.25);
+    box-shadow: 0 2px 8px rgba(5, 23, 64, 0.25);
 }
 
 header h1 {
@@ -853,7 +853,7 @@ header .btn-small:hover {
 .modal-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(98, 10, 35, 0.5);
+    background: rgba(5, 23, 64, 0.5);
     backdrop-filter: blur(3px);
 }
 
