@@ -1119,7 +1119,14 @@ function renderGallery(list) {
             <div class="gallery-card-info">
                 <div class="g-artist">${esc(v.artiste)}</div>
                 <div class="g-album">${esc(v.album)}</div>
-                ${v.année ? `<div class="g-year">${esc(v.année)}</div>` : ''}
+                <div class="g-year-row">
+                    ${v.année ? `<span class="g-year">${esc(v.année)}</span>` : ''}
+                    <span class="g-ratings">
+                        <span class="g-rating"><span class="material-symbols-outlined">favorite</span>${v.goût && v.goût !== '0' ? v.goût : '–'}</span>
+                        <span class="g-rating"><span class="material-symbols-outlined">headphones</span>${v.audio && v.audio !== '0' ? v.audio : '–'}</span>
+                        <span class="g-rating"><span class="material-symbols-outlined">bolt</span>${v.energie && v.energie !== '0' ? v.energie : '–'}</span>
+                    </span>
+                </div>
                 ${stylesHtml}
             </div>
         </div>`;

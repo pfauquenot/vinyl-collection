@@ -525,10 +525,36 @@ header .btn-small:hover {
     margin-top: 2px;
 }
 
-.gallery-card-info .g-year {
+.gallery-card-info .g-year-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 2px;
+    gap: 4px;
+}
+
+.gallery-card-info .g-year-row .g-year {
     font-size: 0.72rem;
     color: var(--text-muted);
-    margin-top: 2px;
+}
+
+.gallery-card-info .g-ratings {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.gallery-card-info .g-rating {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.gallery-card-info .g-rating .material-symbols-outlined {
+    font-size: 14px;
+    font-variation-settings: 'FILL' 0, 'wght' 300;
 }
 
 .gallery-card-info .g-styles {
