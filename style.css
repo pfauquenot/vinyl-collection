@@ -6,26 +6,40 @@
 }
 
 :root {
-    --bg: #F5F2EA;
-    --bg-header: #0B1B3A;
+    /* === Palette 3 — "Vinyle Rouge" === */
+    --color-header-bg: #620A23;
+    --color-bg: #F5F5F7;
+    --color-btn-primary: #FF6533;
+    --color-btn-secondary: #0A505C;
+    --color-btn-tertiary: #878787;
+    --color-header-bg-light: rgba(98, 10, 35, 0.1);
+    --color-btn-primary-hover: #E65B2E;
+    --color-border: #E0E0E0;
+    --color-text-muted: #878787;
+    --color-success: #0A505C;
+    --color-danger: #620A23;
+
+    /* === Variables applicatives === */
+    --bg: var(--color-bg);
+    --bg-header: var(--color-header-bg);
     --bg-card: #ffffff;
-    --bg-card-hover: #FAF8F3;
+    --bg-card-hover: #F0F0F2;
     --bg-modal: #ffffff;
-    --bg-input: #ECE9E0;
-    --border: #D5D0C4;
-    --border-light: #E5E1D8;
-    --text: #0B1B3A;
-    --text-muted: #5A6B82;
-    --accent: #D4AF37;
-    --accent-hover: #B8961F;
-    --accent-light: #FBF6E8;
-    --secondary: #2F7DA1;
-    --secondary-hover: #256A8A;
-    --danger: #C0392B;
-    --danger-hover: #A5301F;
-    --success: #27AE60;
-    --tag-bg: #E8E4DA;
-    --tag-text: #3D4F6A;
+    --bg-input: #EDEDF0;
+    --border: var(--color-border);
+    --border-light: #ECECEC;
+    --text: #1A1A1A;
+    --text-muted: var(--color-text-muted);
+    --accent: var(--color-btn-primary);
+    --accent-hover: var(--color-btn-primary-hover);
+    --accent-light: rgba(255, 101, 51, 0.08);
+    --secondary: var(--color-btn-secondary);
+    --secondary-hover: #094853;
+    --danger: var(--color-danger);
+    --danger-hover: #4A0719;
+    --success: var(--color-success);
+    --tag-bg: #EDEDF0;
+    --tag-text: var(--color-header-bg);
     --radius: 8px;
     --radius-sm: 5px;
 }
@@ -50,7 +64,7 @@ header {
     background: var(--bg-header);
     padding: 14px 20px 10px;
     border-bottom: none;
-    box-shadow: 0 2px 8px rgba(11,27,58,0.25);
+    box-shadow: 0 2px 8px rgba(98, 10, 35, 0.25);
 }
 
 header h1 {
@@ -122,12 +136,12 @@ header h1 {
 }
 
 .role-admin {
-    background: rgba(212, 175, 55, 0.2);
+    background: rgba(255, 101, 51, 0.2);
     color: var(--accent);
 }
 
 .role-guest {
-    background: rgba(47, 125, 161, 0.2);
+    background: rgba(10, 80, 92, 0.2);
     color: var(--secondary);
 }
 
@@ -193,7 +207,7 @@ header h1 {
 .search-bar input:focus {
     border-color: var(--accent);
     background: rgba(255,255,255,0.18);
-    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.25);
+    box-shadow: 0 0 0 2px rgba(255, 101, 51, 0.25);
 }
 
 .stats {
@@ -220,7 +234,7 @@ header h1 {
 }
 
 .btn-primary:hover {
-    background: var(--accent-hover);
+    opacity: 0.85;
 }
 
 .btn-secondary {
@@ -230,8 +244,7 @@ header h1 {
 }
 
 .btn-secondary:hover {
-    background: var(--secondary-hover);
-    border-color: var(--secondary-hover);
+    opacity: 0.85;
 }
 
 .btn-danger {
@@ -240,7 +253,7 @@ header h1 {
 }
 
 .btn-danger:hover {
-    background: var(--danger-hover);
+    opacity: 0.85;
 }
 
 .btn-small {
@@ -278,7 +291,7 @@ header .btn-small:hover {
 
 .btn-reset:hover {
     color: var(--danger);
-    background: #fde8e8;
+    background: rgba(98, 10, 35, 0.08);
     border-color: var(--danger);
 }
 
@@ -594,7 +607,7 @@ header .btn-small:hover {
 }
 
 .tag-style {
-    background: rgba(47, 125, 161, 0.12);
+    background: rgba(10, 80, 92, 0.12);
     color: var(--secondary);
 }
 
@@ -634,12 +647,12 @@ header .btn-small:hover {
 }
 
 .classé-oui {
-    background: #e6f4e6;
+    background: rgba(10, 80, 92, 0.1);
     color: var(--success);
 }
 
 .classé-non {
-    background: #fde8e8;
+    background: rgba(98, 10, 35, 0.08);
     color: var(--danger);
 }
 
@@ -660,7 +673,7 @@ header .btn-small:hover {
 
 .tags-input-zone:focus-within {
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 0 0 2px rgba(255, 101, 51, 0.2);
 }
 
 .tags-list {
@@ -703,7 +716,7 @@ header .btn-small:hover {
 
 .discogs-url-row input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 0 0 2px rgba(255, 101, 51, 0.2);
 }
 
 .btn-discogs-link {
@@ -782,7 +795,7 @@ header .btn-small:hover {
 
 .discogs-result-item .dr-styles {
     font-size: 0.68rem;
-    color: #3949ab;
+    color: var(--secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -840,7 +853,7 @@ header .btn-small:hover {
 .modal-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(11, 27, 58, 0.5);
+    background: rgba(98, 10, 35, 0.5);
     backdrop-filter: blur(3px);
 }
 
@@ -918,7 +931,7 @@ header .btn-small:hover {
 
 .form-top-fields .form-group input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 0 0 2px rgba(255, 101, 51, 0.2);
 }
 
 .cover-zone {
@@ -967,7 +980,7 @@ header .btn-small:hover {
 
 .cover-url-input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 0 0 2px rgba(255, 101, 51, 0.2);
 }
 
 .cover-actions {
@@ -990,7 +1003,7 @@ header .btn-small:hover {
 .btn-discogs:hover {
     border-color: var(--secondary) !important;
     color: var(--secondary) !important;
-    background: rgba(47, 125, 161, 0.08) !important;
+    background: rgba(10, 80, 92, 0.08) !important;
 }
 
 .btn-discogs.searching {
@@ -1115,7 +1128,7 @@ header .btn-small:hover {
 
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 0 0 2px rgba(255, 101, 51, 0.2);
 }
 
 .form-group textarea {
@@ -1321,7 +1334,7 @@ header .btn-small:hover {
 }
 
 .hamburger-danger:hover {
-    background: #fde8e8;
+    background: rgba(98, 10, 35, 0.08);
 }
 
 .hamburger-separator {
@@ -1368,7 +1381,7 @@ header .btn-small:hover {
 
 .styles-manager-toolbar input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 0 0 2px rgba(255, 101, 51, 0.2);
 }
 
 .styles-count {
@@ -1724,7 +1737,7 @@ header .btn-small:hover {
 }
 
 .backup-type-auto {
-    background: rgba(47, 125, 161, 0.12);
+    background: rgba(10, 80, 92, 0.12);
     color: var(--secondary);
 }
 
@@ -1734,7 +1747,7 @@ header .btn-small:hover {
 }
 
 .backup-type-drive {
-    background: rgba(39, 174, 96, 0.12);
+    background: rgba(10, 80, 92, 0.12);
     color: var(--success);
 }
 
