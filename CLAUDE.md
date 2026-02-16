@@ -111,7 +111,7 @@ vinyl-collection/
 - **Variables CSS** (custom properties) définies dans `:root` pour les couleurs et rayons
 - Couleur d'accent : `--accent: #c4792a` (brun/orangé)
 - Nommage des classes : `kebab-case` (ex : `gallery-card`, `btn-primary`, `cover-result-item`)
-- Préfixe par contexte : `gallery-`, `cover-`, `form-`, `btn-`, `cell-`, `col-`, `badge-`, `tag-`
+- Préfixe par contexte : `gallery-`, `g-` (raccourci galerie), `cover-`, `form-`, `btn-`, `cell-`, `col-`, `badge-`, `tag-`
 - Responsive : mobile-first, breakpoint principal à `768px`
 - Utilitaire `.hidden` : `display: none !important`
 
