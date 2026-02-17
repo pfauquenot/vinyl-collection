@@ -32,7 +32,9 @@ const ENERGIE_LABELS = {
 const ADMIN_EMAIL = 'pfauquenot@infortive.com';
 
 // === Anthropic API ===
-const ANTHROPIC_API_KEY = typeof process !== 'undefined' && process.env?.ANTHROPIC_API_KEY || localStorage.getItem('ANTHROPIC_API_KEY') || '';
+function getAnthropicApiKey() {
+    return localStorage.getItem('ANTHROPIC_API_KEY') || '';
+}
 
 // === Firebase Config ===
 const firebaseConfig = {
@@ -1310,6 +1312,13 @@ async function lancerAnalyseIA() {
         return;
     }
 
+    const apiKey = getAnthropicApiKey();
+    if (!apiKey) {
+        iaZone.classList.remove('hidden');
+        iaZone.innerHTML = '<p class="ia-error">Clé API Anthropic non configurée.<br>Ouvrez la console (Cmd+Option+J) et tapez :<br><code>localStorage.setItem(\'ANTHROPIC_API_KEY\', \'sk-ant-...\')</code></p>';
+        return;
+    }
+
     // Spinner state
     iaBtn.disabled = true;
     iaBtn.textContent = '⏳ Analyse en cours...';
@@ -1323,7 +1332,7 @@ async function lancerAnalyseIA() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-api-key': ANTHROPIC_API_KEY,
+                'x-api-key': apiKey,
                 'anthropic-version': '2023-06-01',
                 'anthropic-dangerous-direct-browser-access': 'true'
             },
@@ -1351,9 +1360,7 @@ async function lancerAnalyseIA() {
     } catch (err) {
         console.error('Erreur analyse IA:', err);
         let message = 'Erreur lors de l\'analyse IA.';
-        if (!window.ANTHROPIC_API_KEY) {
-            message = 'Clé API Anthropic non configurée. Ajoutez ANTHROPIC_API_KEY dans la configuration.';
-        } else if (err.message.includes('401')) {
+        if (err.message.includes('401')) {
             message = 'Clé API Anthropic invalide. Vérifiez votre configuration.';
         } else if (err.message.includes('429')) {
             message = 'Trop de requêtes. Réessayez dans quelques instants.';
