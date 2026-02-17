@@ -32,8 +32,21 @@ const ENERGIE_LABELS = {
 const ADMIN_EMAIL = 'pfauquenot@infortive.com';
 
 // === Anthropic API ===
+let cachedAnthropicApiKey = '';
+
+async function loadAnthropicApiKey() {
+    try {
+        const doc = await db.collection('config').doc('anthropic').get();
+        if (doc.exists && doc.data().apiKey) {
+            cachedAnthropicApiKey = doc.data().apiKey;
+        }
+    } catch (err) {
+        console.warn('Impossible de charger la clé API Anthropic:', err);
+    }
+}
+
 function getAnthropicApiKey() {
-    return localStorage.getItem('ANTHROPIC_API_KEY') || '';
+    return cachedAnthropicApiKey;
 }
 
 // === Firebase Config ===
@@ -255,6 +268,7 @@ auth.onAuthStateChanged(async (user) => {
         updateUserDisplay(user);
         applyRoleUI();
         subscribeToVinyls();
+        await loadAnthropicApiKey();
         await migrateLocalStorageToFirestore();
         await initBackupScheduler();
     } else {
@@ -1315,7 +1329,7 @@ async function lancerAnalyseIA() {
     const apiKey = getAnthropicApiKey();
     if (!apiKey) {
         iaZone.classList.remove('hidden');
-        iaZone.innerHTML = '<p class="ia-error">Clé API Anthropic non configurée.<br>Ouvrez la console (Cmd+Option+J) et tapez :<br><code>localStorage.setItem(\'ANTHROPIC_API_KEY\', \'sk-ant-...\')</code></p>';
+        iaZone.innerHTML = '<p class="ia-error">Clé API Anthropic non configurée.<br>Un administrateur doit la renseigner via le menu ☰ &gt; Clé API Anthropic.</p>';
         return;
     }
 
@@ -1812,6 +1826,63 @@ async function loadAdminUsers() {
         adminUsersList.innerHTML = `<p>Erreur: ${esc(err.message)}</p>`;
     }
 }
+
+// === Admin: Clé API Anthropic ===
+const apiKeyModal = document.getElementById('apiKeyModal');
+const apiKeyModalClose = document.getElementById('apiKeyModalClose');
+const adminApiKeyInput = document.getElementById('adminApiKeyInput');
+const adminApiKeyToggle = document.getElementById('adminApiKeyToggle');
+const adminApiKeySave = document.getElementById('adminApiKeySave');
+const adminApiKeyStatus = document.getElementById('adminApiKeyStatus');
+
+document.getElementById('adminApiKeyBtn').addEventListener('click', async () => {
+    if (currentUserRole !== 'admin') return;
+    apiKeyModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    adminApiKeyStatus.textContent = '';
+    // Charger la clé actuelle
+    try {
+        const doc = await db.collection('config').doc('anthropic').get();
+        adminApiKeyInput.value = (doc.exists && doc.data().apiKey) ? doc.data().apiKey : '';
+    } catch (err) {
+        adminApiKeyInput.value = '';
+    }
+});
+
+apiKeyModalClose.addEventListener('click', () => {
+    apiKeyModal.classList.add('hidden');
+    document.body.style.overflow = '';
+});
+
+document.querySelector('#apiKeyModal .modal-overlay')?.addEventListener('click', () => {
+    apiKeyModal.classList.add('hidden');
+    document.body.style.overflow = '';
+});
+
+adminApiKeyToggle.addEventListener('click', () => {
+    const isPassword = adminApiKeyInput.type === 'password';
+    adminApiKeyInput.type = isPassword ? 'text' : 'password';
+    adminApiKeyToggle.querySelector('.material-symbols-outlined').textContent = isPassword ? 'visibility_off' : 'visibility';
+});
+
+adminApiKeySave.addEventListener('click', async () => {
+    if (currentUserRole !== 'admin') return;
+    const key = adminApiKeyInput.value.trim();
+    adminApiKeySave.disabled = true;
+    adminApiKeyStatus.textContent = 'Enregistrement…';
+    adminApiKeyStatus.className = 'admin-apikey-status';
+    try {
+        await db.collection('config').doc('anthropic').set({ apiKey: key });
+        cachedAnthropicApiKey = key;
+        adminApiKeyStatus.textContent = key ? '✓ Clé enregistrée' : '✓ Clé supprimée';
+        adminApiKeyStatus.classList.add('admin-apikey-success');
+    } catch (err) {
+        adminApiKeyStatus.textContent = 'Erreur : ' + err.message;
+        adminApiKeyStatus.classList.add('admin-apikey-error');
+    } finally {
+        adminApiKeySave.disabled = false;
+    }
+});
 
 // === Styles Manager ===
 const manageStylesBtn = document.getElementById('manageStylesBtn');
@@ -2749,6 +2820,9 @@ document.addEventListener('keydown', (e) => {
             closeModal();
         } else if (!stylesModal.classList.contains('hidden')) {
             closeGenreModal();
+        } else if (!apiKeyModal.classList.contains('hidden')) {
+            apiKeyModal.classList.add('hidden');
+            document.body.style.overflow = '';
         } else if (!adminModal.classList.contains('hidden')) {
             adminModal.classList.add('hidden');
             document.body.style.overflow = '';
