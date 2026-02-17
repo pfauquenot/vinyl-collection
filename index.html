@@ -64,6 +64,7 @@
                         <button class="hamburger-item guest-hidden" id="backupBtn"><span class="material-symbols-outlined">cloud_upload</span> Sauvegarde</button>
                         <div class="hamburger-separator admin-only hidden"></div>
                         <button class="hamburger-item admin-only hidden" id="adminUsersBtn"><span class="material-symbols-outlined">group</span> Utilisateurs</button>
+                        <button class="hamburger-item admin-only hidden" id="adminApiKeyBtn"><span class="material-symbols-outlined">vpn_key</span> Clé API Anthropic</button>
                         <button class="hamburger-item hamburger-danger admin-only hidden" id="clearDbBtn"><span class="material-symbols-outlined">delete_sweep</span> Vider la base</button>
                     </div>
                 </div>
@@ -346,6 +347,28 @@
                 </div>
                 <div id="adminUsersList" class="admin-users-list">
                     <p>Chargement...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Admin: Clé API Anthropic -->
+        <div id="apiKeyModal" class="modal hidden">
+            <div class="modal-overlay"></div>
+            <div class="modal-content modal-admin">
+                <div class="modal-header">
+                    <h2>Clé API Anthropic</h2>
+                    <button id="apiKeyModalClose" class="btn-close">&times;</button>
+                </div>
+                <div class="admin-apikey-section">
+                    <p class="admin-apikey-hint">Cette clé est utilisée pour l'analyse IA des vinyles. Elle est partagée entre tous les utilisateurs.</p>
+                    <div class="admin-apikey-field">
+                        <input type="password" id="adminApiKeyInput" placeholder="sk-ant-..." autocomplete="off">
+                        <button type="button" id="adminApiKeyToggle" class="btn-icon" title="Afficher / Masquer"><span class="material-symbols-outlined">visibility</span></button>
+                    </div>
+                    <div class="admin-apikey-actions">
+                        <button type="button" id="adminApiKeySave" class="btn-primary">Enregistrer</button>
+                        <span id="adminApiKeyStatus" class="admin-apikey-status"></span>
+                    </div>
                 </div>
             </div>
         </div>

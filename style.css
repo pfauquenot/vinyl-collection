@@ -1353,6 +1353,60 @@ header .btn-small:hover {
     flex-shrink: 0;
 }
 
+/* === Admin API Key === */
+.admin-apikey-section {
+    padding: 4px 0;
+}
+
+.admin-apikey-hint {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    line-height: 1.5;
+}
+
+.admin-apikey-field {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.admin-apikey-field input {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: monospace;
+}
+
+.admin-apikey-field input:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.admin-apikey-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.admin-apikey-status {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.admin-apikey-status.admin-apikey-success {
+    color: #4caf50;
+}
+
+.admin-apikey-status.admin-apikey-error {
+    color: #e53935;
+}
+
 /* === Token Modal === */
 .modal-token {
     max-width: 440px;
