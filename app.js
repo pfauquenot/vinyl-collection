@@ -31,6 +31,9 @@ const ENERGIE_LABELS = {
 
 const ADMIN_EMAIL = 'pfauquenot@infortive.com';
 
+// === Anthropic API ===
+const ANTHROPIC_API_KEY = typeof process !== 'undefined' && process.env?.ANTHROPIC_API_KEY || localStorage.getItem('ANTHROPIC_API_KEY') || '';
+
 // === Firebase Config ===
 const firebaseConfig = {
     apiKey: "AIzaSyBGOJmv2W9Pu1UjNPMvMaL2WfFa60U8G3E",
@@ -1238,6 +1241,132 @@ function closeModal() {
     discogsLink.classList.add('hidden');
     const oldResults = document.querySelector('.cover-results');
     if (oldResults) oldResults.remove();
+    // Reset IA result zone
+    const iaZone = document.getElementById('iaResultZone');
+    iaZone.innerHTML = '';
+    iaZone.classList.add('hidden');
+    const iaBtn = document.getElementById('iaAnalyseBtn');
+    iaBtn.textContent = '🤖 Analyse IA';
+    iaBtn.disabled = false;
+}
+
+// === Analyse IA (Anthropic API) ===
+
+const IA_SYSTEM_PROMPT = `Tu es un critique musical expert et audiophile exigeant. On te donne les informations d'un disque vinyle. Tu dois identifier précisément l'édition grâce au label et à la référence catalogue.
+
+Réponds en français avec cette structure :
+
+### 🎵 Résumé de l'album
+Brève présentation de l'album (contexte de sortie, place dans la discographie).
+
+### 🎧 Qualité audio du pressage
+Analyse de cette édition spécifique (label + référence) :
+- Qualité du pressage (first press, réédition, masterisation utilisée, ex: half-speed, DMM, etc.)
+- Comparaison avec d'autres éditions connues si pertinent
+- Cote audiophile de ce pressage (note sur 5)
+
+### 🎶 Avis musical
+- Points forts et points faibles de l'album
+- Morceaux remarquables
+- Note artistique (sur 5)
+
+### Verdict
+Un résumé en 2-3 phrases pour un audiophile collectionneur.
+
+Si tu ne peux pas identifier précisément l'édition via la référence, signale-le clairement et base ton analyse sur l'album en général.`;
+
+function parseMarkdown(md) {
+    let html = esc(md);
+    // Headers
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    // Bold
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // List items
+    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+    // Paragraphs — lines not already wrapped
+    html = html.replace(/^(?!<[hul]|<li)(.+)$/gm, '<p>$1</p>');
+    // Clean up extra newlines
+    html = html.replace(/\n/g, '');
+    return html;
+}
+
+async function lancerAnalyseIA() {
+    const iaBtn = document.getElementById('iaAnalyseBtn');
+    const iaZone = document.getElementById('iaResultZone');
+
+    const artiste = document.getElementById('artiste').value.trim();
+    const album = document.getElementById('album').value.trim();
+    const année = document.getElementById('année').value;
+    const label = document.getElementById('label').value.trim();
+    const référence = document.getElementById('référence').value.trim();
+
+    if (!artiste || !album) {
+        iaZone.classList.remove('hidden');
+        iaZone.innerHTML = '<p class="ia-error">Veuillez renseigner au moins l\'artiste et l\'album.</p>';
+        return;
+    }
+
+    // Spinner state
+    iaBtn.disabled = true;
+    iaBtn.textContent = '⏳ Analyse en cours...';
+    iaZone.classList.remove('hidden');
+    iaZone.innerHTML = '<div class="ia-spinner"><div class="spinner"></div> Analyse en cours…</div>';
+
+    const userMessage = `Artiste: ${artiste}, Album: ${album}, Année: ${année}, Label: ${label}, Référence: ${référence}`;
+
+    try {
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': ANTHROPIC_API_KEY,
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 1500,
+                system: IA_SYSTEM_PROMPT,
+                messages: [{ role: 'user', content: userMessage }]
+            })
+        });
+
+        if (!resp.ok) {
+            const errBody = await resp.text();
+            throw new Error(`Erreur API (${resp.status}): ${errBody}`);
+        }
+
+        const data = await resp.json();
+        const texte = data.content?.[0]?.text || 'Aucune réponse reçue.';
+
+        iaZone.innerHTML = parseMarkdown(texte);
+
+        // Save result in avisIA hidden field
+        document.getElementById('avisIA').value = texte;
+
+    } catch (err) {
+        console.error('Erreur analyse IA:', err);
+        let message = 'Erreur lors de l\'analyse IA.';
+        if (!window.ANTHROPIC_API_KEY) {
+            message = 'Clé API Anthropic non configurée. Ajoutez ANTHROPIC_API_KEY dans la configuration.';
+        } else if (err.message.includes('401')) {
+            message = 'Clé API Anthropic invalide. Vérifiez votre configuration.';
+        } else if (err.message.includes('429')) {
+            message = 'Trop de requêtes. Réessayez dans quelques instants.';
+        } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+            message = 'Erreur réseau. Vérifiez votre connexion internet.';
+        } else {
+            message = err.message;
+        }
+        iaZone.innerHTML = `<p class="ia-error">${esc(message)}</p>`;
+    } finally {
+        iaBtn.disabled = false;
+        iaBtn.textContent = '🤖 Analyse IA';
+    }
 }
 
 function setCover(url) {
@@ -1312,6 +1441,15 @@ function openEdit(id) {
     document.getElementById('acheté').value = v.acheté || '';
     document.getElementById('lieu').value = v.lieu || '';
     document.getElementById('avisIA').value = v.avisIA || '';
+    // Afficher l'avis IA existant s'il y en a un
+    const iaZone = document.getElementById('iaResultZone');
+    if (v.avisIA) {
+        iaZone.innerHTML = parseMarkdown(v.avisIA);
+        iaZone.classList.remove('hidden');
+    } else {
+        iaZone.innerHTML = '';
+        iaZone.classList.add('hidden');
+    }
     document.getElementById('commentaire').value = v.commentaire || '';
 
     // Styles
@@ -1335,9 +1473,10 @@ function openEdit(id) {
             el.disabled = false;
         }
     });
-    // Keep cancel button enabled
+    // Keep cancel button, close button and IA button enabled
     cancelBtn.disabled = false;
     modalClose.disabled = false;
+    document.getElementById('iaAnalyseBtn').disabled = false;
 
     openModal();
 }
@@ -1374,6 +1513,7 @@ addBtn.addEventListener('click', openAdd);
 modalClose.addEventListener('click', closeModal);
 cancelBtn.addEventListener('click', closeModal);
 document.querySelector('#modal .modal-overlay')?.addEventListener('click', closeModal);
+document.getElementById('iaAnalyseBtn').addEventListener('click', lancerAnalyseIA);
 
 vinylForm.addEventListener('submit', async (e) => {
     e.preventDefault();

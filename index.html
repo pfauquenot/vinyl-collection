@@ -311,9 +311,12 @@
                             </select>
                         </div>
 
-                        <div class="form-group full-width">
-                            <label for="avisIA">Avis IA</label>
-                            <textarea id="avisIA" name="avisIA" rows="2"></textarea>
+                        <div class="form-group full-width ia-section">
+                            <div class="ia-header">
+                                <button type="button" id="iaAnalyseBtn" class="btn btn-ia">🤖 Analyse IA</button>
+                            </div>
+                            <input type="hidden" id="avisIA" name="avisIA">
+                            <div id="iaResultZone" class="ia-result-zone hidden"></div>
                         </div>
 
                         <div class="form-group full-width">
