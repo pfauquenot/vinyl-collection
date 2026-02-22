@@ -78,7 +78,8 @@ vinyl-collection/
 ├── index.html                          # Page unique — structure HTML, formulaire modal, filtres, tableau, galerie
 ├── app.js                              # Logique complète — CRUD, rendu, filtres, tri, import/export, Firebase Auth, Firestore
 ├── style.css                           # Styles — variables CSS, responsive mobile/desktop, animations
-├── firebase.json                       # Configuration Firebase Hosting
+├── firebase.json                       # Configuration Firebase Hosting + Firestore
+├── firestore.rules                     # Règles de sécurité Firestore (users, vinyls, snapshots)
 ├── .firebaserc                         # Projet Firebase par défaut (vinyl-pfa)
 ├── .github/workflows/firebase-deploy.yml  # CI/CD — déploiement automatique sur push main
 ├── CLAUDE.md                           # Ce fichier — conventions et instructions pour agents IA
@@ -111,7 +112,7 @@ vinyl-collection/
 - **Variables CSS** (custom properties) définies dans `:root` pour les couleurs et rayons
 - Couleur d'accent : `--accent: #c4792a` (brun/orangé)
 - Nommage des classes : `kebab-case` (ex : `gallery-card`, `btn-primary`, `cover-result-item`)
-- Préfixe par contexte : `gallery-`, `cover-`, `form-`, `btn-`, `cell-`, `col-`, `badge-`, `tag-`
+- Préfixe par contexte : `gallery-`, `g-` (raccourci galerie), `cover-`, `form-`, `btn-`, `cell-`, `col-`, `badge-`, `tag-`
 - Responsive : mobile-first, breakpoint principal à `768px`
 - Utilitaire `.hidden` : `display: none !important`
 

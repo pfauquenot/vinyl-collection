@@ -17,7 +17,7 @@ L'application propose deux modes d'affichage :
 
 | Vue galerie | Vue tableau |
 |:-----------:|:-----------:|
-| Pochettes en grille avec artiste, album et annee | Tableau complet avec toutes les colonnes triables |
+| Pochettes en grille avec artiste, album, annee et indicateurs gout/audio/energie | Tableau complet avec toutes les colonnes triables |
 
 > *Ajoutez vos propres captures d'ecran dans un dossier `screenshots/` et remplacez ce bloc par des images :*
 > ```md
@@ -43,7 +43,7 @@ L'application propose deux modes d'affichage :
 - **Selection visuelle** parmi plusieurs resultats quand la recherche est ambigue
 
 ### Affichage et navigation
-- **Vue galerie** : grille de pochettes avec artiste, album et annee
+- **Vue galerie** : grille de pochettes avec artiste, album, annee et indicateurs gout/audio/energie (icones Material Symbols)
 - **Vue tableau** : colonnes detaillees avec tri par clic sur les en-tetes
 - **Tri** sur 9 criteres : artiste, album, annee, gout, audio, energie, prix, nb ecoutes, date d'ajout
 - **Ordre ascendant / descendant** d'un clic
@@ -168,7 +168,8 @@ vinyl-collection/
 ├── index.html                          # Page unique — structure HTML, formulaire modal, filtres, tableau, galerie
 ├── app.js                              # Logique complete — CRUD, Firebase Auth, Firestore, filtres, tri, import/export
 ├── style.css                           # Styles — variables CSS, responsive mobile/desktop, animations
-├── firebase.json                       # Configuration Firebase Hosting
+├── firebase.json                       # Configuration Firebase Hosting + Firestore
+├── firestore.rules                     # Regles de securite Firestore (users, vinyls, snapshots)
 ├── .firebaserc                         # Projet Firebase par defaut (vinyl-pfa)
 ├── .github/workflows/firebase-deploy.yml  # CI/CD — deploiement automatique sur push main
 ├── CLAUDE.md                           # Instructions et conventions pour les agents IA
