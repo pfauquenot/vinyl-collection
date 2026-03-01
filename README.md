@@ -1,6 +1,6 @@
 # Vinylthèque
 
-Application web de gestion de collection de disques vinyles. Cataloguez, notez, filtrez et recherchez vos vinyles, avec récupération automatique des pochettes via l'API Deezer.
+Application web de gestion de collection de disques vinyles. Cataloguez, notez, filtrez et recherchez vos vinyles, avec récupération automatique des pochettes via l'API Deezer, recherche Discogs, analyse IA et sauvegarde Google Drive.
 
 Zéro dépendance, zéro build, zéro `node_modules` — trois fichiers suffisent.
 
@@ -36,14 +36,27 @@ L'application propose deux modes d'affichage :
 - **Suivi des ecoutes** : nombre d'ecoutes par vinyle
 - **Prix et lieu d'achat** : pour suivre ses depenses et sources
 
+### Analyse IA
+- **Analyse automatique** de chaque vinyle via l'API Anthropic (Claude)
+- **Identification de l'edition** : pressage, pays, cote, qualite audio attendue
+- **Avis de critique musical** : analyse stylistique et recommandations
+- Resultat stocke dans le champ `avisIA` de chaque fiche
+- Cle API configurable par l'administrateur dans le menu de l'application
+
 ### Pochettes d'albums
 - **Recherche automatique** des pochettes via l'API Deezer (JSONP, sans cle d'API)
 - **Recherche en lot** : un clic pour recuperer toutes les pochettes manquantes
 - **Saisie manuelle d'URL** pour les pochettes introuvables
 - **Selection visuelle** parmi plusieurs resultats quand la recherche est ambigue
 
+### Integration Discogs
+- **Recherche Discogs** depuis le formulaire d'edition d'un vinyle
+- **Recherche en lot** : recuperation automatique des genres, pochettes et liens Discogs
+- **Token personnel** : configurable via le menu de l'application
+- Extraction automatique des genres/styles depuis les resultats Discogs
+
 ### Affichage et navigation
-- **Vue galerie** : grille de pochettes avec artiste, album et annee
+- **Vue galerie** : grille de pochettes avec artiste, album, annee et indicateurs gout/audio/energie
 - **Vue tableau** : colonnes detaillees avec tri par clic sur les en-tetes
 - **Tri** sur 9 criteres : artiste, album, annee, gout, audio, energie, prix, nb ecoutes, date d'ajout
 - **Ordre ascendant / descendant** d'un clic
@@ -55,16 +68,32 @@ L'application propose deux modes d'affichage :
 - **Filtre par energie** : de "Tres doux" a "Explosif"
 - **Filtre par classement** : vinyles classes ou non
 
+### Gestion des genres
+- **Modale dediee** pour gerer les genres musicaux de la collection
+- **Comptage** du nombre d'albums par genre
+- **Filtrage, suppression et fusion** de genres
+
 ### Import / Export
 - **Import CSV** : supporte virgule, point-virgule et tabulation comme separateurs, avec reconnaissance automatique des en-tetes (alias multiples)
 - **Export CSV** : fichier avec BOM UTF-8 et separateur point-virgule, compatible Excel
 - **Export JSON** : sauvegarde complete de la collection
 - **Import JSON** : fusion intelligente (ajout des nouveaux, mise a jour des existants par ID)
 
+### Sauvegarde et restauration
+- **Snapshots Firestore** : sauvegarde automatique et manuelle avec historique versionne
+- **Google Drive** : envoi et restauration de sauvegardes JSON sur Google Drive
+- **Planification** : sauvegarde automatique configurable (manuelle, quotidienne, hebdomadaire)
+- **Restauration** : depuis n'importe quel snapshot ou fichier Drive
+
 ### Selection et actions groupees
 - **Selection multiple** via cases a cocher en vue tableau
 - **Tout selectionner / deselectionner** d'un clic
 - **Suppression groupee** des vinyles selectionnes
+
+### Roles et permissions
+- **Admin** : acces complet + gestion des utilisateurs, cle API, vidage de base
+- **Utilisateur** : CRUD, export/import, backup, gestion des genres
+- **Invite** : lecture seule, navigation et filtres uniquement
 
 ### Statistiques
 - **Barre de stats** en temps reel : nombre total de vinyles, valeur totale en euros, nombre affiche apres filtrage
@@ -79,7 +108,7 @@ L'application propose deux modes d'affichage :
 | Framework        | Aucun (zero dependance, zero `node_modules`)           |
 | Base de donnees  | Cloud Firestore (persistance offline activee)          |
 | Authentification | Firebase Auth (Google sign-in, roles admin/user/guest) |
-| API externes     | Deezer (JSONP), Discogs (token personnel), Google Drive|
+| API externes     | Deezer (JSONP), Discogs (token personnel), Anthropic (Claude), Google Drive |
 | Police           | Google Fonts — Inter (300, 400, 500, 600, 700)         |
 | Hebergement      | Firebase Hosting (CI/CD via GitHub Actions)             |
 
@@ -192,7 +221,7 @@ Pour eviter tout abus, la cle doit etre **restreinte** dans la Google Cloud Cons
 
 Les vinyles sont stockes dans **Cloud Firestore** (base de donnees Firebase), avec persistance offline activee. Chaque utilisateur dispose de sa propre collection, isolee par Firebase Auth. Les preferences d'interface (filtres, vue) sont stockees dans le `localStorage` du navigateur.
 
-Pour sauvegarder ou transferer votre collection, utilisez les boutons **Export JSON** / **Import JSON**.
+Pour sauvegarder ou transferer votre collection, utilisez les boutons **Export JSON** / **Import JSON**, ou configurez la sauvegarde automatique vers Google Drive.
 
 Structure d'un enregistrement :
 
@@ -201,22 +230,24 @@ Structure d'un enregistrement :
   id: "uuid",
   dateAjout: "2024-01-15T10:30:00.000Z",
   categorie: ["Jazz", "Pop / Rock"],  // affiche "Rangement" dans l'UI
-  classe: "Oui",
+  classé: "Oui",
   artiste: "Miles Davis",
   album: "Kind of Blue",
-  annee: "1959",
+  année: "1959",
   label: "Columbia",
-  reference: "CS 8163",
-  gout: "6",        // 0 (Deteste) a 6 (Vibre)
+  référence: "CS 8163",
+  genre: ["Jazz", "Modal Jazz"],      // genres musicaux (Discogs)
+  goût: "6",        // 0 (Deteste) a 6 (Vibre)
   audio: "9",       // 3 (Moyen) a 10 (Exceptionnel)
   energie: "2",     // 1 (Tres doux) a 6 (Explosif)
   nb: "42",
   prix: "35.00",
-  achete: "Discogs",               // affiche "Achete ou" dans l'UI
+  acheté: "Discogs",               // affiche "Achete ou" dans l'UI
   lieu: "PFA",                     // PFA | En livraison | A acheter | A vendre | Vendu
-  avisIA: "Texte libre",           // avis genere par IA
+  avisIA: "Texte libre",           // avis genere par IA (Anthropic)
   commentaire: "Pressage original mono",
-  coverUrl: "https://..."          // affiche "URL cover" dans le CSV
+  coverUrl: "https://...",         // affiche "URL cover" dans le CSV
+  discogsUrl: "https://..."        // lien vers la page Discogs
 }
 ```
 
