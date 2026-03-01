@@ -1467,7 +1467,7 @@ function openEdit(id) {
     document.getElementById('audio').value = v.audio || '';
     document.getElementById('energie').value = v.energie || '';
     document.getElementById('nb').value = v.nb || '0';
-    document.getElementById('prix').value = v.prix || '';
+    document.getElementById('prix').value = (v.prix || '').replace(',', '.');
     document.getElementById('acheté').value = v.acheté || '';
     document.getElementById('lieu').value = v.lieu || '';
     document.getElementById('avisIA').value = v.avisIA || '';
@@ -2175,7 +2175,7 @@ function parseCSV(text) {
             audio: audioVal,
             energie: energieVal,
             nb: get('nb') || '0',
-            prix: get('prix'),
+            prix: get('prix').replace(',', '.'),
             acheté: get('achete'),
             lieu: get('lieu'),
             avisIA: get('avisia'),
