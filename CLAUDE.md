@@ -1,6 +1,6 @@
 # Vinylthèque
 
-Application web de gestion de collection de disques vinyles. Permet de cataloguer, noter, filtrer et rechercher ses vinyles, avec récupération automatique des pochettes via l'API Deezer.
+Application web de gestion de collection de disques vinyles. Permet de cataloguer, noter, filtrer et rechercher ses vinyles, avec récupération automatique des pochettes via l'API Deezer, recherche Discogs, analyse IA (Anthropic) et sauvegarde Google Drive.
 
 ## Stack technique
 
@@ -10,7 +10,7 @@ Application web de gestion de collection de disques vinyles. Permet de catalogue
 | Framework       | Aucun (zéro dépendance, zéro `node_modules`)             |
 | Base de données | Cloud Firestore (persistance offline activée)            |
 | Authentification| Firebase Auth (Google sign-in, rôles admin/user/guest)   |
-| API externes    | Deezer (JSONP), Discogs (token personnel), Google Drive  |
+| API externes    | Deezer (JSONP), Discogs (token personnel), Anthropic (Claude), Google Drive |
 | Police          | Google Fonts — Inter (300, 400, 500, 600, 700)           |
 | Hébergement     | Firebase Hosting (CI/CD via GitHub Actions)               |
 | Projet Firebase | `vinyl-pfa`                                              |
@@ -85,6 +85,70 @@ vinyl-collection/
 └── README.md                           # Documentation utilisateur
 ```
 
+## Fonctionnalités principales
+
+### Analyse IA (Anthropic API)
+
+- Bouton « Analyse IA » dans le formulaire de détail d'un vinyle
+- Appel à l'API Anthropic (`claude-sonnet-4-20250514`) avec un system prompt de critique musical expert
+- Résultat affiché en markdown dans la fiche, stocké dans le champ `avisIA`
+- La clé API est stockée dans Firestore (`config/anthropic`), configurable par l'admin via le menu ☰ > Clé API Anthropic
+- Lecture de la clé au login via `loadAnthropicApiKey()`, mise en cache dans `cachedAnthropicApiKey`
+
+### Recherche Discogs
+
+- Recherche par artiste + album avec fallback sans année/label/référence
+- Recherche en lot (`bulkSearchDiscogs`) : récupère genre, pochette et lien Discogs pour toute la collection
+- Token personnel stocké dans Firestore (champ `discogsToken` dans le document utilisateur)
+- Gestion du rate limiting (429) et validation du token
+
+### Sauvegarde et restauration
+
+- **Snapshots Firestore** : sous-collection par utilisateur, limite de 100 snapshots, types `auto` et `manual`
+- **Google Drive** : upload/download de fichiers JSON, dossier dédié « Vinylthèque Backup », max 30 fichiers
+- **Scheduling** : fréquence configurable (`manual`, `daily`, `weekly`), vérification toutes les 30 minutes
+- Persistance des réglages dans Firestore (`backupSettings` dans le document utilisateur)
+- Restauration depuis n'importe quel snapshot ou fichier Drive
+
+### Gestion des genres/styles
+
+- Modale dédiée accessible via le menu ☰ > Gestion des genres
+- Affichage de tous les genres avec comptage d'albums
+- Filtrage, suppression et fusion de genres
+- Migration automatique de l'ancien champ `styles` vers `genre` (`migrateStylesToGenre`)
+
+### Rôles et permissions
+
+| Rôle    | Accès                                                    |
+| ------- | -------------------------------------------------------- |
+| `admin` | Toutes les fonctions + gestion utilisateurs, clé API, vider la base |
+| `user`  | CRUD complet, export/import, backup, gestion genres      |
+| `guest` | Lecture seule, navigation et filtres uniquement           |
+
+- Admin par défaut : `pfauquenot@infortive.com` (constante `ADMIN_EMAIL`)
+- Rôles stockés dans Firestore (collection `users`, champ `role`)
+- UI adaptée via `applyRoleUI()` : classes `.admin-only` et `.guest-hidden`
+- Badge de rôle affiché dans le header
+
+### Fonctionnalités admin (menu ☰)
+
+- **Utilisateurs** : voir tous les utilisateurs, changer leurs rôles
+- **Clé API Anthropic** : configurer la clé partagée pour l'analyse IA
+- **Vider la base** : suppression complète avec double confirmation
+
+### Raccourcis clavier
+
+- **Escape** : ferme la modale active (fiche, genres, admin, API key, backup, token)
+
+## Collections Firestore
+
+| Collection / Document      | Contenu                                           |
+| -------------------------- | ------------------------------------------------- |
+| `vinyls/{id}`              | Données d'un vinyle (voir structure ci-dessous)   |
+| `users/{uid}`              | Profil utilisateur : rôle, discogsToken, backupSettings |
+| `users/{uid}/snapshots/{id}` | Snapshots de sauvegarde (type, timestamp, données) |
+| `config/anthropic`         | Clé API Anthropic partagée (`apiKey`)              |
+
 ## Conventions de code
 
 ### Langue
@@ -109,9 +173,9 @@ vinyl-collection/
 ### CSS
 
 - **Variables CSS** (custom properties) définies dans `:root` pour les couleurs et rayons
-- Couleur d'accent : `--accent: #c4792a` (brun/orangé)
+- Palette active : **« Nuit Vinyle »** — accent `--accent: #FF6533` (orange), secondaire `--secondary: #0A505C` (bleu océan), header `--bg-header: #051740` (bleu nuit)
 - Nommage des classes : `kebab-case` (ex : `gallery-card`, `btn-primary`, `cover-result-item`)
-- Préfixe par contexte : `gallery-`, `cover-`, `form-`, `btn-`, `cell-`, `col-`, `badge-`, `tag-`
+- Préfixe par contexte : `gallery-`, `cover-`, `form-`, `btn-`, `cell-`, `col-`, `badge-`, `tag-`, `admin-`, `ia-`
 - Responsive : mobile-first, breakpoint principal à `768px`
 - Utilitaire `.hidden` : `display: none !important`
 
@@ -135,6 +199,7 @@ vinyl-collection/
   année: "2024",
   label: "Nom du label",
   référence: "REF-123",
+  genre: ["Jazz", "Fusion"],           // tableau de strings — genres musicaux (ex-Discogs)
   goût: "0" à "6",                     // string numérique
   audio: "3" à "10",                   // string numérique
   energie: "1" à "6",                  // string numérique
@@ -142,9 +207,10 @@ vinyl-collection/
   prix: "29.99",                       // string
   acheté: "Discogs",                   // affiché "Acheté ou" dans l'UI
   lieu: "PFA",                         // "PFA" | "En livraison" | "A acheter" | "A vendre" | "Vendu" | ""
-  avisIA: "Texte libre",              // avis généré par IA
+  avisIA: "Texte libre",              // avis généré par IA (Anthropic)
   commentaire: "Texte libre",
-  coverUrl: "https://..."             // affiché "URL cover" dans le CSV
+  coverUrl: "https://...",             // affiché "URL cover" dans le CSV
+  discogsUrl: "https://..."            // lien vers la page Discogs de l'album
 }
 ```
 
