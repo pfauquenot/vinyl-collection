@@ -2169,7 +2169,26 @@ function parseCSV(text) {
     return results;
 }
 
+function detectCSVDelimiter(text) {
+    // Analyse la première ligne (hors quotes) pour détecter le délimiteur
+    let inQuotes = false;
+    let semicolons = 0, commas = 0, tabs = 0;
+    for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === '"') { inQuotes = !inQuotes; continue; }
+        if (inQuotes) continue;
+        if (ch === '\n' || ch === '\r') break;
+        if (ch === ';') semicolons++;
+        else if (ch === ',') commas++;
+        else if (ch === '\t') tabs++;
+    }
+    if (semicolons >= commas && semicolons >= tabs) return ';';
+    if (tabs >= commas) return '\t';
+    return ',';
+}
+
 function parseCSVLines(text) {
+    const delimiter = detectCSVDelimiter(text);
     const lines = [];
     let current = [];
     let field = '';
@@ -2191,7 +2210,7 @@ function parseCSVLines(text) {
         } else {
             if (ch === '"') {
                 inQuotes = true;
-            } else if (ch === ',' || ch === ';' || ch === '\t') {
+            } else if (ch === delimiter) {
                 current.push(field);
                 field = '';
             } else if (ch === '\n' || (ch === '\r' && next === '\n')) {
