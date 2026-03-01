@@ -2743,7 +2743,7 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
     function csvEscape(val) {
         if (!val) return '';
         const str = String(val);
-        if (str.includes(';') || str.includes('"') || str.includes('\n')) {
+        if (str.includes(';') || str.includes(',') || str.includes('\t') || str.includes('"') || str.includes('\n')) {
             return '"' + str.replace(/"/g, '""') + '"';
         }
         return str;
