@@ -315,7 +315,7 @@ header .btn-small:hover {
     gap: 8px;
     padding: 8px 20px;
     overflow-x: auto;
-    background: var(--bg);
+    background: var(--bg-header);
     -webkit-overflow-scrolling: touch;
     margin: 0 -20px;
     border-top: 1px solid rgba(255,255,255,0.1);
@@ -323,13 +323,18 @@ header .btn-small:hover {
 
 .filters select {
     padding: 6px 10px;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
     border-radius: var(--radius-sm);
-    color: var(--text);
+    color: rgba(255,255,255,0.85);
     font-size: 0.8rem;
     min-width: 0;
     cursor: pointer;
+}
+
+.filters select option {
+    background: var(--bg-card);
+    color: var(--text);
 }
 
 /* === Table === */
