@@ -8,5 +8,8 @@
       "create-issues.sh",
       "CLAUDE.md"
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }
