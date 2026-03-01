@@ -2729,7 +2729,7 @@ document.getElementById('backupFrequency').addEventListener('change', async (e) 
 
 // === Export CSV ===
 document.getElementById('exportCsvBtn').addEventListener('click', () => {
-    const headers = ['Rangement', 'Classé', 'Artiste', 'Album', 'Année', 'Label', 'Référence', 'Genre', 'Goût', 'Audio', 'Énergie', 'Nb', 'Prix', 'Acheté ou', 'Lieu', 'Avis IA', 'Commentaire', 'URL cover', 'Discogs URL'];
+    const headers = ['Classé', 'Rangement', 'Artiste', 'Album', 'Année', 'Label', 'Référence', 'Goût', 'Audio', 'Énergie', 'Nb', 'Prix', 'Acheté', 'Commentaire', 'Lieu', 'Genre', 'Discogs', 'Image'];
 
     function csvEscape(val) {
         if (!val) return '';
@@ -2745,25 +2745,24 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
         const audioText = v.audio && AUDIO_LABELS[v.audio] ? `${v.audio} – ${AUDIO_LABELS[v.audio]}` : v.audio || '';
         const energieText = v.energie && ENERGIE_LABELS[v.energie] ? `${v.energie} – ${ENERGIE_LABELS[v.energie]}` : v.energie || '';
         return [
-            (v.categorie || []).join(', '),
             v.classé || '',
+            (v.categorie || []).join(', '),
             v.artiste || '',
             v.album || '',
             v.année || '',
             v.label || '',
             v.référence || '',
-            (v.genre || []).join(', '),
             goutText,
             audioText,
             energieText,
             v.nb || '',
             v.prix || '',
             v.acheté || '',
-            v.lieu || '',
-            v.avisIA || '',
             v.commentaire || '',
-            v.coverUrl || '',
-            v.discogsUrl || ''
+            v.lieu || '',
+            (v.genre || []).join(', '),
+            v.discogsUrl || '',
+            v.coverUrl || ''
         ].map(csvEscape).join(';');
     });
 
