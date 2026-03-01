@@ -1073,13 +1073,29 @@ function getFilteredAndSorted() {
         }
         if (va < vb) return sortAsc ? -1 : 1;
         if (va > vb) return sortAsc ? 1 : -1;
+        // Secondary sort: artiste then album alphabetically
+        const artA = (a.artiste || '').toLowerCase();
+        const artB = (b.artiste || '').toLowerCase();
+        if (artA < artB) return -1;
+        if (artA > artB) return 1;
+        const albA = (a.album || '').toLowerCase();
+        const albB = (b.album || '').toLowerCase();
+        if (albA < albB) return -1;
+        if (albA > albB) return 1;
         return 0;
     });
 
     return list;
 }
 
+function updateHeaderHeight() {
+    const h = document.querySelector('header');
+    if (h) document.documentElement.style.setProperty('--header-height', h.offsetHeight + 'px');
+}
+window.addEventListener('resize', updateHeaderHeight);
+
 function render() {
+    updateHeaderHeight();
     const list = getFilteredAndSorted();
 
     statsEl.textContent = `${vinyls.length} vinyle${vinyls.length > 1 ? 's' : ''} · ${list.length} affiché${list.length > 1 ? 's' : ''}`;

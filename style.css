@@ -318,7 +318,7 @@ header .btn-small:hover {
     background: var(--bg-header);
     -webkit-overflow-scrolling: touch;
     margin: 0 -20px;
-    border-top: 1px solid rgba(255,255,255,0.1);
+    border-top: 1px solid var(--bg-header);
 }
 
 .filters select {
@@ -339,7 +339,8 @@ header .btn-small:hover {
 
 /* === Table === */
 .table-wrapper {
-    padding: 0 20px 100px;
+    padding: 0 0 100px;
+    overflow-x: auto;
 }
 
 .vinyl-table {
@@ -360,6 +361,17 @@ header .btn-small:hover {
     border-bottom: none;
     white-space: nowrap;
     cursor: default;
+    position: sticky;
+    top: var(--header-height, 0px);
+    z-index: 50;
+}
+
+.vinyl-table thead th:first-child {
+    padding-left: 20px;
+}
+
+.vinyl-table thead th:last-child {
+    padding-right: 20px;
 }
 
 .vinyl-table thead th[data-sort] {
@@ -400,6 +412,14 @@ header .btn-small:hover {
     padding: 9px 8px;
     vertical-align: top;
     max-width: 200px;
+}
+
+.vinyl-table tbody td:first-child {
+    padding-left: 20px;
+}
+
+.vinyl-table tbody td:last-child {
+    padding-right: 20px;
 }
 
 .vinyl-table tbody td.cell-artiste {
@@ -1654,7 +1674,17 @@ header .btn-small:hover {
     }
 
     .table-wrapper {
-        padding: 0 32px 60px;
+        padding: 0 0 60px;
+    }
+
+    .vinyl-table thead th:first-child,
+    .vinyl-table tbody td:first-child {
+        padding-left: 32px;
+    }
+
+    .vinyl-table thead th:last-child,
+    .vinyl-table tbody td:last-child {
+        padding-right: 32px;
     }
 
     .modal {
