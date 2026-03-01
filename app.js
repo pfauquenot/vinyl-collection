@@ -2118,6 +2118,18 @@ function parseCSV(text) {
         }
     });
 
+    // Diagnostic : colonnes non reconnues
+    const unmapped = rawHeaders.filter((h, i) =>
+        !Object.values(headerMap).includes(i)
+    );
+    if (unmapped.length > 0) {
+        console.warn('CSV Import — colonnes non reconnues:', unmapped);
+    }
+    console.log('CSV Import — délimiteur:', JSON.stringify(detectCSVDelimiter(text)),
+        '| colonnes:', lines[0].length,
+        '| lignes:', lines.length - 1,
+        '| headerMap:', JSON.stringify(headerMap));
+
     const results = [];
     for (let i = 1; i < lines.length; i++) {
         const cols = lines[i];
@@ -2127,6 +2139,13 @@ function parseCSV(text) {
             const idx = headerMap[field];
             return idx !== undefined && cols[idx] !== undefined ? cols[idx].trim() : '';
         };
+
+        // Diagnostic sur la première ligne de données
+        if (i === 1) {
+            console.log('CSV Import — 1ère ligne, nb colonnes:', cols.length,
+                '| prix brut:', JSON.stringify(get('prix')),
+                '| artiste:', JSON.stringify(get('artiste')));
+        }
 
         const artiste = get('artiste');
         const album = get('album');
