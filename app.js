@@ -1189,7 +1189,7 @@ function renderTable(list) {
             <td class="cell-audio">${esc(audioText)}</td>
             <td class="cell-energie">${esc(energieText)}</td>
             <td class="cell-center">${v.nb && v.nb !== '0' ? v.nb : ''}</td>
-            <td class="cell-num">${v.prix ? v.prix + ' €' : ''}</td>
+            <td class="cell-num">${v.prix ? cleanPrix(v.prix) + ' €' : ''}</td>
             <td>${esc(v.acheté)}</td>
             <td>${esc(v.lieu)}</td>
             <td class="cell-comment" title="${esc(v.avisIA)}">${esc(v.avisIA)}</td>
@@ -1236,6 +1236,11 @@ function esc(str) {
     const d = document.createElement('div');
     d.textContent = str;
     return d.innerHTML;
+}
+
+function cleanPrix(val) {
+    if (!val) return '';
+    return String(val).replace(/[€\s]/g, '').replace(',', '.');
 }
 
 // === Modal ===
@@ -1467,7 +1472,7 @@ function openEdit(id) {
     document.getElementById('audio').value = v.audio || '';
     document.getElementById('energie').value = v.energie || '';
     document.getElementById('nb').value = v.nb || '0';
-    document.getElementById('prix').value = (v.prix || '').replace(',', '.');
+    document.getElementById('prix').value = cleanPrix(v.prix);
     document.getElementById('acheté').value = v.acheté || '';
     document.getElementById('lieu').value = v.lieu || '';
     document.getElementById('avisIA').value = v.avisIA || '';
@@ -2175,7 +2180,7 @@ function parseCSV(text) {
             audio: audioVal,
             energie: energieVal,
             nb: get('nb') || '0',
-            prix: get('prix').replace(',', '.'),
+            prix: cleanPrix(get('prix')),
             acheté: get('achete'),
             lieu: get('lieu'),
             avisIA: get('avisia'),
