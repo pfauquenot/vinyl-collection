@@ -49,6 +49,23 @@ function getAnthropicApiKey() {
     return cachedAnthropicApiKey;
 }
 
+let cachedIaPrompt = '';
+
+async function loadIaPrompt() {
+    try {
+        const doc = await db.collection('config').doc('iaPrompt').get();
+        if (doc.exists && doc.data().prompt) {
+            cachedIaPrompt = doc.data().prompt;
+        }
+    } catch (err) {
+        console.warn('Impossible de charger le prompt IA:', err);
+    }
+}
+
+function getIaPrompt() {
+    return cachedIaPrompt || IA_SYSTEM_PROMPT;
+}
+
 // === Firebase Config ===
 const firebaseConfig = {
     apiKey: "AIzaSyBGOJmv2W9Pu1UjNPMvMaL2WfFa60U8G3E",
@@ -269,6 +286,7 @@ auth.onAuthStateChanged(async (user) => {
         applyRoleUI();
         subscribeToVinyls();
         await loadAnthropicApiKey();
+        await loadIaPrompt();
         await migrateLocalStorageToFirestore();
         await initBackupScheduler();
     } else {
@@ -1387,7 +1405,7 @@ async function lancerAnalyseIA() {
             body: JSON.stringify({
                 model: 'claude-sonnet-4-20250514',
                 max_tokens: 1500,
-                system: IA_SYSTEM_PROMPT,
+                system: getIaPrompt(),
                 messages: [{ role: 'user', content: userMessage }]
             })
         });
@@ -1915,6 +1933,67 @@ adminApiKeySave.addEventListener('click', async () => {
         adminApiKeyStatus.classList.add('admin-apikey-error');
     } finally {
         adminApiKeySave.disabled = false;
+    }
+});
+
+// === Admin: Prompt IA ===
+const iaPromptModal = document.getElementById('iaPromptModal');
+const iaPromptModalClose = document.getElementById('iaPromptModalClose');
+const iaPromptTextarea = document.getElementById('iaPromptTextarea');
+const iaPromptSave = document.getElementById('iaPromptSave');
+const iaPromptReset = document.getElementById('iaPromptReset');
+const iaPromptStatus = document.getElementById('iaPromptStatus');
+
+document.getElementById('adminIaPromptBtn').addEventListener('click', async () => {
+    if (currentUserRole !== 'admin') return;
+    iaPromptModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    iaPromptStatus.textContent = '';
+    // Charger le prompt actuel
+    try {
+        const doc = await db.collection('config').doc('iaPrompt').get();
+        iaPromptTextarea.value = (doc.exists && doc.data().prompt) ? doc.data().prompt : IA_SYSTEM_PROMPT;
+    } catch (err) {
+        iaPromptTextarea.value = IA_SYSTEM_PROMPT;
+    }
+});
+
+iaPromptModalClose.addEventListener('click', () => {
+    iaPromptModal.classList.add('hidden');
+    document.body.style.overflow = '';
+});
+
+document.querySelector('#iaPromptModal .modal-overlay')?.addEventListener('click', () => {
+    iaPromptModal.classList.add('hidden');
+    document.body.style.overflow = '';
+});
+
+iaPromptReset.addEventListener('click', () => {
+    iaPromptTextarea.value = IA_SYSTEM_PROMPT;
+});
+
+iaPromptSave.addEventListener('click', async () => {
+    if (currentUserRole !== 'admin') return;
+    const prompt = iaPromptTextarea.value.trim();
+    iaPromptSave.disabled = true;
+    iaPromptStatus.textContent = 'Enregistrement…';
+    iaPromptStatus.className = 'admin-apikey-status';
+    try {
+        if (prompt === IA_SYSTEM_PROMPT || !prompt) {
+            await db.collection('config').doc('iaPrompt').delete();
+            cachedIaPrompt = '';
+            iaPromptStatus.textContent = '✓ Prompt réinitialisé (par défaut)';
+        } else {
+            await db.collection('config').doc('iaPrompt').set({ prompt });
+            cachedIaPrompt = prompt;
+            iaPromptStatus.textContent = '✓ Prompt enregistré';
+        }
+        iaPromptStatus.classList.add('admin-apikey-success');
+    } catch (err) {
+        iaPromptStatus.textContent = 'Erreur : ' + err.message;
+        iaPromptStatus.classList.add('admin-apikey-error');
+    } finally {
+        iaPromptSave.disabled = false;
     }
 });
 
@@ -2894,6 +2973,9 @@ document.addEventListener('keydown', (e) => {
             closeGenreModal();
         } else if (!apiKeyModal.classList.contains('hidden')) {
             apiKeyModal.classList.add('hidden');
+            document.body.style.overflow = '';
+        } else if (!iaPromptModal.classList.contains('hidden')) {
+            iaPromptModal.classList.add('hidden');
             document.body.style.overflow = '';
         } else if (!adminModal.classList.contains('hidden')) {
             adminModal.classList.add('hidden');
