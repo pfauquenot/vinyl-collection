@@ -1115,11 +1115,15 @@ function render() {
         vinylTable.classList.add('hidden');
         tableView.classList.add('hidden');
         galleryView.classList.remove('hidden');
+        document.body.classList.add('gallery-mode');
+        document.body.classList.remove('table-mode');
         renderGallery(list);
     } else {
         galleryView.classList.add('hidden');
         vinylTable.classList.remove('hidden');
         tableView.classList.remove('hidden');
+        document.body.classList.add('table-mode');
+        document.body.classList.remove('gallery-mode');
         renderTable(list);
     }
     updateSortIndicator();
