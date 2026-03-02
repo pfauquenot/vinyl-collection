@@ -65,6 +65,7 @@
                         <div class="hamburger-separator admin-only hidden"></div>
                         <button class="hamburger-item admin-only hidden" id="adminUsersBtn"><span class="material-symbols-outlined">group</span> Utilisateurs</button>
                         <button class="hamburger-item admin-only hidden" id="adminApiKeyBtn"><span class="material-symbols-outlined">vpn_key</span> Clé API Anthropic</button>
+                        <button class="hamburger-item admin-only hidden" id="adminIaPromptBtn"><span class="material-symbols-outlined">psychology</span> Prompt IA</button>
                         <button class="hamburger-item hamburger-danger admin-only hidden" id="clearDbBtn"><span class="material-symbols-outlined">delete_sweep</span> Vider la base</button>
                     </div>
                 </div>
@@ -367,6 +368,26 @@
                     <div class="admin-apikey-actions">
                         <button type="button" id="adminApiKeySave" class="btn-primary">Enregistrer</button>
                         <span id="adminApiKeyStatus" class="admin-apikey-status"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Prompt IA -->
+        <div id="iaPromptModal" class="modal hidden">
+            <div class="modal-overlay"></div>
+            <div class="modal-content modal-ia-prompt">
+                <div class="modal-header">
+                    <h2>Prompt IA</h2>
+                    <button id="iaPromptModalClose" class="btn-close">&times;</button>
+                </div>
+                <div class="ia-prompt-section">
+                    <p class="admin-apikey-hint">Ce prompt est utilisé comme instruction système pour l'analyse IA des vinyles.</p>
+                    <textarea id="iaPromptTextarea" rows="20" placeholder="Entrez le prompt système pour l'analyse IA…"></textarea>
+                    <div class="ia-prompt-actions">
+                        <button type="button" id="iaPromptReset" class="btn btn-secondary">Réinitialiser</button>
+                        <button type="button" id="iaPromptSave" class="btn btn-primary">Enregistrer</button>
+                        <span id="iaPromptStatus" class="admin-apikey-status"></span>
                     </div>
                 </div>
             </div>

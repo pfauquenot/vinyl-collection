@@ -1438,6 +1438,42 @@ header .btn-small:hover {
     color: #e53935;
 }
 
+/* === Prompt IA Modal === */
+.modal-ia-prompt {
+    max-width: 700px;
+}
+
+.ia-prompt-section {
+    padding: 4px 0;
+}
+
+.ia-prompt-section textarea {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 0.82rem;
+    font-family: monospace;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 200px;
+    box-sizing: border-box;
+}
+
+.ia-prompt-section textarea:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.ia-prompt-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+}
+
 /* === Token Modal === */
 .modal-token {
     max-width: 440px;
