@@ -64,6 +64,10 @@ header {
     background: var(--bg-header);
     padding: 14px 20px 0;
     border-bottom: none;
+    box-shadow: none;
+}
+
+body.gallery-mode header {
     box-shadow: 0 2px 8px rgba(5, 23, 64, 0.25);
 }
 
@@ -340,7 +344,7 @@ header .btn-small:hover {
 /* === Table === */
 .table-wrapper {
     padding: 0 0 100px;
-    overflow-x: auto;
+    overflow-x: clip;
 }
 
 .vinyl-table {
@@ -364,6 +368,10 @@ header .btn-small:hover {
     position: sticky;
     top: var(--header-height, 0px);
     z-index: 50;
+}
+
+.vinyl-table thead tr {
+    box-shadow: 0 2px 8px rgba(5, 23, 64, 0.25);
 }
 
 .vinyl-table thead th:first-child {
@@ -1665,7 +1673,7 @@ header .btn-small:hover {
 /* === Responsive Desktop === */
 @media (min-width: 768px) {
     header {
-        padding: 16px 32px 10px;
+        padding: 16px 32px 0;
     }
 
     .filters {
