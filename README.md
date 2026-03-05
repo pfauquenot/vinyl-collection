@@ -42,6 +42,7 @@ L'application propose deux modes d'affichage :
 - **Avis de critique musical** : analyse stylistique et recommandations
 - Resultat stocke dans le champ `avisIA` de chaque fiche
 - Cle API configurable par l'administrateur dans le menu de l'application
+- **Prompt personnalisable** : l'administrateur peut modifier le prompt systeme via le menu ☰ > Prompt IA
 
 ### Pochettes d'albums
 - **Recherche automatique** des pochettes via l'API Deezer (JSONP, sans cle d'API)
@@ -91,7 +92,7 @@ L'application propose deux modes d'affichage :
 - **Suppression groupee** des vinyles selectionnes
 
 ### Roles et permissions
-- **Admin** : acces complet + gestion des utilisateurs, cle API, vidage de base
+- **Admin** : acces complet + gestion des utilisateurs, cle API, prompt IA, vidage de base
 - **Utilisateur** : CRUD, export/import, backup, gestion des genres
 - **Invite** : lecture seule, navigation et filtres uniquement
 
