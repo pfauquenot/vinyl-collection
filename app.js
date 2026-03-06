@@ -3013,6 +3013,11 @@ hamburgerDropdown.querySelectorAll('.hamburger-item').forEach(item => {
     });
 });
 
+// === Service Worker ===
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
 // === Init ===
 populateFilters();
 restoreFilters();
