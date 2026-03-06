@@ -93,7 +93,10 @@ vinyl-collection/
 - Appel à l'API Anthropic (`claude-sonnet-4-20250514`) avec un system prompt de critique musical expert
 - Résultat affiché en markdown dans la fiche, stocké dans le champ `avisIA`
 - La clé API est stockée dans Firestore (`config/anthropic`), configurable par l'admin via le menu ☰ > Clé API Anthropic
+- Le prompt système est personnalisable par l'admin via le menu ☰ > Prompt IA, stocké dans Firestore (`config/iaPrompt`)
+- Si aucun prompt personnalisé n'est défini, le prompt par défaut (`IA_SYSTEM_PROMPT`) est utilisé
 - Lecture de la clé au login via `loadAnthropicApiKey()`, mise en cache dans `cachedAnthropicApiKey`
+- Lecture du prompt au login via `loadIaPrompt()`, mise en cache dans `cachedIaPrompt`
 
 ### Recherche Discogs
 
@@ -121,7 +124,7 @@ vinyl-collection/
 
 | Rôle    | Accès                                                    |
 | ------- | -------------------------------------------------------- |
-| `admin` | Toutes les fonctions + gestion utilisateurs, clé API, vider la base |
+| `admin` | Toutes les fonctions + gestion utilisateurs, clé API, prompt IA, vider la base |
 | `user`  | CRUD complet, export/import, backup, gestion genres      |
 | `guest` | Lecture seule, navigation et filtres uniquement           |
 
@@ -134,11 +137,12 @@ vinyl-collection/
 
 - **Utilisateurs** : voir tous les utilisateurs, changer leurs rôles
 - **Clé API Anthropic** : configurer la clé partagée pour l'analyse IA
+- **Prompt IA** : personnaliser le prompt système utilisé pour l'analyse IA (avec bouton réinitialiser)
 - **Vider la base** : suppression complète avec double confirmation
 
 ### Raccourcis clavier
 
-- **Escape** : ferme la modale active (fiche, genres, admin, API key, backup, token)
+- **Escape** : ferme la modale active (fiche, genres, admin, API key, prompt IA, backup, token)
 
 ## Collections Firestore
 
@@ -148,6 +152,7 @@ vinyl-collection/
 | `users/{uid}`              | Profil utilisateur : rôle, discogsToken, backupSettings |
 | `users/{uid}/snapshots/{id}` | Snapshots de sauvegarde (type, timestamp, données) |
 | `config/anthropic`         | Clé API Anthropic partagée (`apiKey`)              |
+| `config/iaPrompt`          | Prompt système personnalisé pour l'analyse IA (`prompt`) |
 
 ## Conventions de code
 

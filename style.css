@@ -1797,9 +1797,7 @@ header .btn-small:hover {
 }
 
 .login-vinyl-icon {
-    font-size: 3rem;
     margin-bottom: 16px;
-    color: var(--accent);
 }
 
 .btn-google {
