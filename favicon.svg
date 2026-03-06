@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#fff"/>
+  <!-- Bande diagonale haute -->
+  <polygon points="0,0 380,0 0,220" fill="#051740"/>
+  <!-- Bande diagonale basse -->
+  <polygon points="130,0 512,0 512,220 0,340 0,280" fill="#051740"/>
+  <!-- Trois arches en bas (hauteur croissante) -->
+  <rect x="30" y="370" width="110" height="142" rx="55" fill="#051740"/>
+  <rect x="30" y="430" width="110" height="82" fill="#051740"/>
+  <rect x="200" y="320" width="110" height="192" rx="55" fill="#051740"/>
+  <rect x="200" y="400" width="110" height="112" fill="#051740"/>
+  <rect x="370" y="270" width="110" height="242" rx="55" fill="#051740"/>
+  <rect x="370" y="370" width="110" height="142" fill="#051740"/>
+</svg>
