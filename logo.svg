@@ -1,28 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-  <!-- Disque vinyle (gris clair) -->
-  <circle cx="120" cy="128" r="108" fill="#e8e8e8" stroke="#ccc" stroke-width="1"/>
-  <!-- Sillons -->
-  <circle cx="120" cy="128" r="100" fill="none" stroke="#d0d0d0" stroke-width="0.8"/>
-  <circle cx="120" cy="128" r="93" fill="none" stroke="#d5d5d5" stroke-width="0.6"/>
-  <circle cx="120" cy="128" r="86" fill="none" stroke="#d0d0d0" stroke-width="0.8"/>
-  <circle cx="120" cy="128" r="79" fill="none" stroke="#d5d5d5" stroke-width="0.6"/>
-  <circle cx="120" cy="128" r="72" fill="none" stroke="#d0d0d0" stroke-width="0.8"/>
-  <circle cx="120" cy="128" r="65" fill="none" stroke="#d5d5d5" stroke-width="0.6"/>
-  <circle cx="120" cy="128" r="58" fill="none" stroke="#d0d0d0" stroke-width="0.8"/>
-  <circle cx="120" cy="128" r="51" fill="none" stroke="#d5d5d5" stroke-width="0.6"/>
-  <circle cx="120" cy="128" r="44" fill="none" stroke="#d0d0d0" stroke-width="0.8"/>
-  <circle cx="120" cy="128" r="37" fill="none" stroke="#d5d5d5" stroke-width="0.6"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 260">
+  <!-- Disque vinyle blanc/gris très clair -->
+  <circle cx="122" cy="134" r="112" fill="#f0f0f0" stroke="#ddd" stroke-width="0.5"/>
+
+  <!-- Sillons concentriques fins (nombreux, comme sur l'image) -->
+  <circle cx="122" cy="134" r="108" fill="none" stroke="#d8d8d8" stroke-width="0.4"/>
+  <circle cx="122" cy="134" r="105" fill="none" stroke="#ddd" stroke-width="0.3"/>
+  <circle cx="122" cy="134" r="102" fill="none" stroke="#d8d8d8" stroke-width="0.4"/>
+  <circle cx="122" cy="134" r="99" fill="none" stroke="#ddd" stroke-width="0.3"/>
+  <circle cx="122" cy="134" r="96" fill="none" stroke="#d8d8d8" stroke-width="0.4"/>
+  <circle cx="122" cy="134" r="93" fill="none" stroke="#ddd" stroke-width="0.3"/>
+  <circle cx="122" cy="134" r="90" fill="none" stroke="#d5d5d5" stroke-width="0.5"/>
+  <circle cx="122" cy="134" r="87" fill="none" stroke="#ddd" stroke-width="0.3"/>
+  <circle cx="122" cy="134" r="84" fill="none" stroke="#d8d8d8" stroke-width="0.4"/>
+  <circle cx="122" cy="134" r="81" fill="none" stroke="#ddd" stroke-width="0.3"/>
+  <circle cx="122" cy="134" r="78" fill="none" stroke="#d8d8d8" stroke-width="0.4"/>
+  <circle cx="122" cy="134" r="75" fill="none" stroke="#ddd" stroke-width="0.3"/>
+  <circle cx="122" cy="134" r="72" fill="none" stroke="#d5d5d5" stroke-width="0.5"/>
+  <circle cx="122" cy="134" r="69" fill="none" stroke="#ddd" stroke-width="0.3"/>
+  <circle cx="122" cy="134" r="66" fill="none" stroke="#d8d8d8" stroke-width="0.4"/>
+  <circle cx="122" cy="134" r="63" fill="none" stroke="#ddd" stroke-width="0.3"/>
+  <circle cx="122" cy="134" r="60" fill="none" stroke="#d8d8d8" stroke-width="0.4"/>
+  <circle cx="122" cy="134" r="57" fill="none" stroke="#ddd" stroke-width="0.3"/>
+  <circle cx="122" cy="134" r="54" fill="none" stroke="#d5d5d5" stroke-width="0.5"/>
+  <circle cx="122" cy="134" r="51" fill="none" stroke="#ddd" stroke-width="0.3"/>
+  <circle cx="122" cy="134" r="48" fill="none" stroke="#d8d8d8" stroke-width="0.4"/>
+  <circle cx="122" cy="134" r="45" fill="none" stroke="#ddd" stroke-width="0.3"/>
+  <circle cx="122" cy="134" r="42" fill="none" stroke="#d8d8d8" stroke-width="0.4"/>
+  <circle cx="122" cy="134" r="39" fill="none" stroke="#ddd" stroke-width="0.3"/>
+  <circle cx="122" cy="134" r="36" fill="none" stroke="#d5d5d5" stroke-width="0.5"/>
+
   <!-- Label central -->
-  <circle cx="120" cy="128" r="24" fill="#f5f5f5" stroke="#ccc" stroke-width="0.8"/>
-  <circle cx="120" cy="128" r="10" fill="#e0e0e0" stroke="#ccc" stroke-width="0.5"/>
-  <circle cx="120" cy="128" r="3" fill="#999"/>
-  <!-- Bras de lecture -->
-  <!-- Base pivot -->
-  <circle cx="212" cy="42" r="18" fill="#E87A20"/>
-  <!-- Bras principal -->
-  <line x1="207" y1="54" x2="148" y2="140" stroke="#E87A20" stroke-width="4.5" stroke-linecap="round"/>
-  <!-- Cellule -->
-  <rect x="141" y="137" width="7" height="16" rx="2" fill="#E87A20" transform="rotate(-25 144 145)"/>
-  <!-- Pointe -->
-  <line x1="140" y1="152" x2="136" y2="158" stroke="#555" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="122" cy="134" r="28" fill="#f8f8f8" stroke="#ddd" stroke-width="0.5"/>
+  <circle cx="122" cy="134" r="14" fill="#f0f0f0" stroke="#ddd" stroke-width="0.4"/>
+  <circle cx="122" cy="134" r="4" fill="#bbb"/>
+
+  <!-- Bras de lecture orange -->
+  <!-- Tête ronde (pivot en haut à droite) -->
+  <circle cx="216" cy="38" r="20" fill="#E87A20"/>
+
+  <!-- Bras : du pivot vers le bord du disque -->
+  <line x1="210" y1="52" x2="155" y2="118" stroke="#E87A20" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Coude / articulation -->
+  <circle cx="155" cy="118" r="4" fill="#E87A20"/>
+
+  <!-- Cellule (partie basse du bras, vers le vinyle) -->
+  <rect x="148" y="118" width="8" height="22" rx="3" fill="#E87A20" transform="rotate(-20 152 129)"/>
+
+  <!-- Pointe de lecture -->
+  <circle cx="145" cy="140" r="1.5" fill="#555"/>
 </svg>
