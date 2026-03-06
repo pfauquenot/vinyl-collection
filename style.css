@@ -1767,7 +1767,7 @@ header .btn-small:hover {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    background: var(--bg);
+    background: var(--bg-header);
 }
 
 .login-screen.hidden {
