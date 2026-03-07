@@ -1993,6 +1993,155 @@ header .btn-small:hover {
     color: var(--success);
 }
 
+/* === Vue 3D — Graphe === */
+.graph3d-view {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - var(--header-height, 200px));
+    overflow: hidden;
+    background: #0a0a12;
+}
+
+.graph3d-view canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Popup 3D */
+.graph3d-popup {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.graph3d-popup.hidden {
+    display: none !important;
+}
+
+.graph3d-popup-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.graph3d-popup-card {
+    position: relative;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    text-align: center;
+    z-index: 1;
+}
+
+.graph3d-popup-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+}
+
+.graph3d-popup-close:hover {
+    color: var(--text);
+}
+
+.graph3d-popup-cover {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    background: var(--bg-input);
+}
+
+.graph3d-popup-artist {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 2px;
+}
+
+.graph3d-popup-album {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+}
+
+.graph3d-popup-ratings {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 16px;
+}
+
+.graph3d-popup-rating {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.graph3d-popup-rating-value {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text);
+}
+
+.graph3d-popup-rating-value .material-symbols-outlined {
+    font-size: 18px;
+    color: var(--accent);
+}
+
+.graph3d-popup-rating-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    max-width: 100px;
+    line-height: 1.2;
+}
+
+.graph3d-popup-ia-btn {
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    padding: 6px 16px;
+}
+
+.graph3d-popup-ia-text {
+    text-align: left;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg-input);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.graph3d-popup-ia-text p {
+    margin-bottom: 6px;
+}
+
+.graph3d-popup-ia-text strong {
+    color: var(--accent);
+}
+
 /* === iOS safe area === */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
     .table-wrapper {
