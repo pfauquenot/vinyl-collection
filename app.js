@@ -141,6 +141,8 @@ const galleryView = document.getElementById('galleryView');
 const tableView = document.getElementById('tableView');
 const viewTableBtn = document.getElementById('viewTable');
 const viewGalleryBtn = document.getElementById('viewGallery');
+const view3DBtn = document.getElementById('view3D');
+const graph3dView = document.getElementById('graph3dView');
 let currentView = 'gallery';
 const coverSearchBtn = document.getElementById('coverSearchBtn');
 const bulkDiscogsBtn = document.getElementById('bulkDiscogsBtn');
@@ -1044,6 +1046,12 @@ function restoreView() {
             currentView = 'table';
             viewTableBtn.classList.add('active');
             viewGalleryBtn.classList.remove('active');
+            view3DBtn.classList.remove('active');
+        } else if (saved === '3d') {
+            currentView = '3d';
+            view3DBtn.classList.add('active');
+            viewTableBtn.classList.remove('active');
+            viewGalleryBtn.classList.remove('active');
         }
     } catch(e) {}
 }
@@ -1121,6 +1129,7 @@ function render() {
     if (list.length === 0) {
         vinylTable.classList.add('hidden');
         galleryView.classList.add('hidden');
+        graph3dView.classList.add('hidden');
         emptyState.classList.remove('hidden');
         emptyState.querySelector('p').textContent =
             vinyls.length === 0 ? 'Aucun vinyle. Commencez par en ajouter un !' : 'Aucun résultat pour ces filtres.';
@@ -1132,12 +1141,22 @@ function render() {
     if (currentView === 'gallery') {
         vinylTable.classList.add('hidden');
         tableView.classList.add('hidden');
+        graph3dView.classList.add('hidden');
         galleryView.classList.remove('hidden');
         document.body.classList.add('gallery-mode');
         document.body.classList.remove('table-mode');
         renderGallery(list);
+    } else if (currentView === '3d') {
+        vinylTable.classList.add('hidden');
+        tableView.classList.add('hidden');
+        galleryView.classList.add('hidden');
+        graph3dView.classList.remove('hidden');
+        document.body.classList.remove('gallery-mode');
+        document.body.classList.remove('table-mode');
+        render3DGraph(list);
     } else {
         galleryView.classList.add('hidden');
+        graph3dView.classList.add('hidden');
         vinylTable.classList.remove('hidden');
         tableView.classList.remove('hidden');
         document.body.classList.add('table-mode');
@@ -1718,6 +1737,7 @@ viewTableBtn.addEventListener('click', () => {
     currentView = 'table';
     viewTableBtn.classList.add('active');
     viewGalleryBtn.classList.remove('active');
+    view3DBtn.classList.remove('active');
     try { localStorage.setItem('vinylView', 'table'); } catch(e) {}
     render();
 });
@@ -1726,7 +1746,17 @@ viewGalleryBtn.addEventListener('click', () => {
     currentView = 'gallery';
     viewGalleryBtn.classList.add('active');
     viewTableBtn.classList.remove('active');
+    view3DBtn.classList.remove('active');
     try { localStorage.setItem('vinylView', 'gallery'); } catch(e) {}
+    render();
+});
+
+view3DBtn.addEventListener('click', () => {
+    currentView = '3d';
+    view3DBtn.classList.add('active');
+    viewTableBtn.classList.remove('active');
+    viewGalleryBtn.classList.remove('active');
+    try { localStorage.setItem('vinylView', '3d'); } catch(e) {}
     render();
 });
 
@@ -3098,6 +3128,8 @@ document.addEventListener('keydown', (e) => {
             document.body.style.overflow = '';
         } else if (!tokenModal.classList.contains('hidden')) {
             tokenModal.classList.add('hidden');
+        } else if (!document.getElementById('graph3dPopup').classList.contains('hidden')) {
+            closeGraph3dPopup();
         }
     }
 });
@@ -3124,6 +3156,418 @@ hamburgerDropdown.querySelectorAll('.hamburger-item').forEach(item => {
         // Small delay for file inputs to register
         setTimeout(() => hamburgerDropdown.classList.remove('open'), 100);
     });
+});
+
+// === Vue 3D — Graphe par genre ===
+let scene3d = null;
+let camera3d = null;
+let renderer3d = null;
+let controls3d = null;
+let graph3dAnimId = null;
+let graph3dNodes = [];
+let graph3dEdges = [];
+let graph3dLineMesh = null;
+let raycaster3d = null;
+let mouse3d = new THREE.Vector2();
+let graph3dInitialized = false;
+let graph3dVinylsHash = '';
+
+// Placeholder canvas pour les pochettes manquantes
+function createPlaceholderTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.fillStyle = '#FF6533';
+    ctx.font = '48px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('♫', 64, 64);
+    return new THREE.CanvasTexture(canvas);
+}
+
+let placeholderTex = null;
+
+function getPlaceholderTexture() {
+    if (!placeholderTex) placeholderTex = createPlaceholderTexture();
+    return placeholderTex;
+}
+
+function init3DScene() {
+    const container = graph3dView;
+    // Nettoyage si déjà initialisé
+    if (renderer3d) {
+        if (graph3dAnimId) cancelAnimationFrame(graph3dAnimId);
+        renderer3d.dispose();
+        container.innerHTML = '';
+    }
+
+    scene3d = new THREE.Scene();
+    scene3d.background = new THREE.Color(0x0a0a12);
+
+    const w = container.clientWidth || window.innerWidth;
+    const h = container.clientHeight || (window.innerHeight - 200);
+    camera3d = new THREE.PerspectiveCamera(60, w / h, 0.1, 2000);
+    camera3d.position.set(0, 0, 120);
+
+    renderer3d = new THREE.WebGLRenderer({ antialias: true });
+    renderer3d.setSize(w, h);
+    renderer3d.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer3d.domElement);
+
+    controls3d = new THREE.OrbitControls(camera3d, renderer3d.domElement);
+    controls3d.enableDamping = true;
+    controls3d.dampingFactor = 0.08;
+    controls3d.minDistance = 10;
+    controls3d.maxDistance = 500;
+
+    raycaster3d = new THREE.Raycaster();
+
+    // Lumière ambiante douce
+    scene3d.add(new THREE.AmbientLight(0xffffff, 1));
+
+    graph3dInitialized = true;
+}
+
+function buildGraph(list) {
+    // Nettoyer les anciens nœuds et arêtes
+    graph3dNodes.forEach(n => {
+        scene3d.remove(n.mesh);
+        if (n.mesh.material.map && n.mesh.material.map !== getPlaceholderTexture()) {
+            n.mesh.material.map.dispose();
+        }
+        n.mesh.material.dispose();
+        n.mesh.geometry.dispose();
+    });
+    if (graph3dLineMesh) {
+        scene3d.remove(graph3dLineMesh);
+        graph3dLineMesh.geometry.dispose();
+        graph3dLineMesh.material.dispose();
+        graph3dLineMesh = null;
+    }
+    graph3dNodes = [];
+    graph3dEdges = [];
+
+    if (list.length === 0) return;
+
+    const nodeSize = 3;
+    const geo = new THREE.PlaneGeometry(nodeSize, nodeSize);
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.crossOrigin = 'anonymous';
+
+    // Créer les nœuds
+    list.forEach((v, i) => {
+        let mat;
+        if (v.coverUrl) {
+            const tex = textureLoader.load(v.coverUrl, undefined, undefined, () => {
+                // Fallback si le chargement échoue
+                mat.map = getPlaceholderTexture();
+                mat.needsUpdate = true;
+            });
+            tex.colorSpace = THREE.SRGBColorSpace;
+            mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+        } else {
+            mat = new THREE.MeshBasicMaterial({ map: getPlaceholderTexture(), side: THREE.DoubleSide });
+        }
+
+        const mesh = new THREE.Mesh(geo.clone(), mat);
+
+        // Position initiale aléatoire en sphère
+        const spread = Math.cbrt(list.length) * 12;
+        mesh.position.set(
+            (Math.random() - 0.5) * spread,
+            (Math.random() - 0.5) * spread,
+            (Math.random() - 0.5) * spread
+        );
+
+        scene3d.add(mesh);
+        graph3dNodes.push({
+            mesh,
+            vinyl: v,
+            vx: 0, vy: 0, vz: 0  // vélocité pour force-directed
+        });
+    });
+
+    // Créer les arêtes (genre en commun)
+    for (let i = 0; i < list.length; i++) {
+        const genresA = list[i].genre || [];
+        if (genresA.length === 0) continue;
+        for (let j = i + 1; j < list.length; j++) {
+            const genresB = list[j].genre || [];
+            if (genresB.length === 0) continue;
+            const shared = genresA.some(g => genresB.includes(g));
+            if (shared) {
+                graph3dEdges.push([i, j]);
+            }
+        }
+    }
+
+    updateEdgeGeometry();
+}
+
+function updateEdgeGeometry() {
+    if (graph3dLineMesh) {
+        scene3d.remove(graph3dLineMesh);
+        graph3dLineMesh.geometry.dispose();
+        graph3dLineMesh.material.dispose();
+    }
+    if (graph3dEdges.length === 0) return;
+
+    const positions = new Float32Array(graph3dEdges.length * 6);
+    graph3dEdges.forEach(([i, j], idx) => {
+        const pi = graph3dNodes[i].mesh.position;
+        const pj = graph3dNodes[j].mesh.position;
+        positions[idx * 6] = pi.x;
+        positions[idx * 6 + 1] = pi.y;
+        positions[idx * 6 + 2] = pi.z;
+        positions[idx * 6 + 3] = pj.x;
+        positions[idx * 6 + 4] = pj.y;
+        positions[idx * 6 + 5] = pj.z;
+    });
+
+    const lineGeo = new THREE.BufferGeometry();
+    lineGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const lineMat = new THREE.LineBasicMaterial({
+        color: 0x0A505C,
+        transparent: true,
+        opacity: 0.3
+    });
+    graph3dLineMesh = new THREE.LineSegments(lineGeo, lineMat);
+    scene3d.add(graph3dLineMesh);
+}
+
+// Simulation force-directed
+let forceIterations = 0;
+const MAX_FORCE_ITERATIONS = 300;
+
+function stepForceLayout() {
+    if (forceIterations >= MAX_FORCE_ITERATIONS) return;
+    forceIterations++;
+
+    const nodes = graph3dNodes;
+    const n = nodes.length;
+    if (n < 2) return;
+
+    const repulsionStrength = 200;
+    const attractionStrength = 0.008;
+    const damping = 0.85;
+    const maxSpeed = 2;
+
+    // Répulsion entre tous les nœuds
+    for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+            const pi = nodes[i].mesh.position;
+            const pj = nodes[j].mesh.position;
+            let dx = pi.x - pj.x;
+            let dy = pi.y - pj.y;
+            let dz = pi.z - pj.z;
+            let dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (dist < 0.5) dist = 0.5;
+            const force = repulsionStrength / (dist * dist);
+            const fx = (dx / dist) * force;
+            const fy = (dy / dist) * force;
+            const fz = (dz / dist) * force;
+            nodes[i].vx += fx;
+            nodes[i].vy += fy;
+            nodes[i].vz += fz;
+            nodes[j].vx -= fx;
+            nodes[j].vy -= fy;
+            nodes[j].vz -= fz;
+        }
+    }
+
+    // Attraction sur les arêtes
+    graph3dEdges.forEach(([i, j]) => {
+        const pi = nodes[i].mesh.position;
+        const pj = nodes[j].mesh.position;
+        const dx = pj.x - pi.x;
+        const dy = pj.y - pi.y;
+        const dz = pj.z - pi.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const idealDist = 15;
+        const force = (dist - idealDist) * attractionStrength;
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+        const fz = (dz / dist) * force;
+        nodes[i].vx += fx;
+        nodes[i].vy += fy;
+        nodes[i].vz += fz;
+        nodes[j].vx -= fx;
+        nodes[j].vy -= fy;
+        nodes[j].vz -= fz;
+    });
+
+    // Centrage léger vers l'origine
+    const centerForce = 0.01;
+    nodes.forEach(node => {
+        node.vx -= node.mesh.position.x * centerForce;
+        node.vy -= node.mesh.position.y * centerForce;
+        node.vz -= node.mesh.position.z * centerForce;
+    });
+
+    // Appliquer vélocité avec damping
+    nodes.forEach(node => {
+        node.vx *= damping;
+        node.vy *= damping;
+        node.vz *= damping;
+        // Limiter la vitesse
+        const speed = Math.sqrt(node.vx * node.vx + node.vy * node.vy + node.vz * node.vz);
+        if (speed > maxSpeed) {
+            node.vx = (node.vx / speed) * maxSpeed;
+            node.vy = (node.vy / speed) * maxSpeed;
+            node.vz = (node.vz / speed) * maxSpeed;
+        }
+        node.mesh.position.x += node.vx;
+        node.mesh.position.y += node.vy;
+        node.mesh.position.z += node.vz;
+    });
+
+    // Mettre à jour les arêtes
+    if (graph3dLineMesh && graph3dEdges.length > 0) {
+        const pos = graph3dLineMesh.geometry.attributes.position.array;
+        graph3dEdges.forEach(([i, j], idx) => {
+            const pi = nodes[i].mesh.position;
+            const pj = nodes[j].mesh.position;
+            pos[idx * 6] = pi.x;
+            pos[idx * 6 + 1] = pi.y;
+            pos[idx * 6 + 2] = pi.z;
+            pos[idx * 6 + 3] = pj.x;
+            pos[idx * 6 + 4] = pj.y;
+            pos[idx * 6 + 5] = pj.z;
+        });
+        graph3dLineMesh.geometry.attributes.position.needsUpdate = true;
+    }
+}
+
+function animate3D() {
+    graph3dAnimId = requestAnimationFrame(animate3D);
+    stepForceLayout();
+    // Faire face à la caméra (billboard)
+    graph3dNodes.forEach(n => n.mesh.quaternion.copy(camera3d.quaternion));
+    controls3d.update();
+    renderer3d.render(scene3d, camera3d);
+}
+
+function render3DGraph(list) {
+    // Hash pour détecter les changements
+    const hash = list.map(v => v.id).sort().join(',');
+    if (hash === graph3dVinylsHash && graph3dInitialized) return;
+    graph3dVinylsHash = hash;
+
+    if (!graph3dInitialized) {
+        init3DScene();
+    }
+
+    forceIterations = 0;
+    buildGraph(list);
+
+    if (!graph3dAnimId) {
+        animate3D();
+    }
+}
+
+// Redimensionnement du canvas 3D
+window.addEventListener('resize', () => {
+    if (!renderer3d || currentView !== '3d') return;
+    const container = graph3dView;
+    const w = container.clientWidth || window.innerWidth;
+    const h = container.clientHeight || (window.innerHeight - 200);
+    camera3d.aspect = w / h;
+    camera3d.updateProjectionMatrix();
+    renderer3d.setSize(w, h);
+});
+
+// Clic sur un nœud 3D — raycasting
+graph3dView.addEventListener('click', (e) => {
+    if (!renderer3d || graph3dNodes.length === 0) return;
+    const rect = renderer3d.domElement.getBoundingClientRect();
+    mouse3d.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse3d.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster3d.setFromCamera(mouse3d, camera3d);
+    const meshes = graph3dNodes.map(n => n.mesh);
+    const intersects = raycaster3d.intersectObjects(meshes);
+    if (intersects.length > 0) {
+        const hit = intersects[0].object;
+        const node = graph3dNodes.find(n => n.mesh === hit);
+        if (node) openGraph3dPopup(node.vinyl);
+    }
+});
+
+// Popup 3D
+function openGraph3dPopup(vinyl) {
+    const popup = document.getElementById('graph3dPopup');
+    const coverEl = document.getElementById('graph3dPopupCover');
+    const artistEl = document.getElementById('graph3dPopupArtist');
+    const albumEl = document.getElementById('graph3dPopupAlbum');
+    const ratingsEl = document.getElementById('graph3dPopupRatings');
+    const iaBtn = document.getElementById('graph3dPopupIaBtn');
+    const iaText = document.getElementById('graph3dPopupIaText');
+
+    // Pochette
+    if (vinyl.coverUrl) {
+        coverEl.src = vinyl.coverUrl;
+        coverEl.style.display = '';
+    } else {
+        coverEl.src = '';
+        coverEl.style.display = 'none';
+    }
+
+    artistEl.textContent = vinyl.artiste || '';
+    albumEl.textContent = vinyl.album || '';
+
+    // Notes
+    const gVal = vinyl.goût || '';
+    const aVal = vinyl.audio || '';
+    const eVal = vinyl.energie || '';
+    ratingsEl.innerHTML = `
+        <div class="graph3d-popup-rating">
+            <div class="graph3d-popup-rating-value">
+                <span class="material-symbols-outlined">favorite</span>
+                ${gVal || '–'}
+            </div>
+            <div class="graph3d-popup-rating-label">${GOUT_LABELS[gVal] || ''}</div>
+        </div>
+        <div class="graph3d-popup-rating">
+            <div class="graph3d-popup-rating-value">
+                <span class="material-symbols-outlined">headphones</span>
+                ${aVal || '–'}
+            </div>
+            <div class="graph3d-popup-rating-label">${AUDIO_LABELS[aVal] || ''}</div>
+        </div>
+        <div class="graph3d-popup-rating">
+            <div class="graph3d-popup-rating-value">
+                <span class="material-symbols-outlined">bolt</span>
+                ${eVal || '–'}
+            </div>
+            <div class="graph3d-popup-rating-label">${ENERGIE_LABELS[eVal] || ''}</div>
+        </div>
+    `;
+
+    // Avis IA
+    if (vinyl.avisIA && vinyl.avisIA.trim()) {
+        iaBtn.classList.remove('hidden');
+        iaText.innerHTML = parseMarkdown(vinyl.avisIA);
+        iaText.classList.add('hidden');
+    } else {
+        iaBtn.classList.add('hidden');
+        iaText.classList.add('hidden');
+    }
+
+    popup.classList.remove('hidden');
+}
+
+function closeGraph3dPopup() {
+    document.getElementById('graph3dPopup').classList.add('hidden');
+}
+
+// Événements popup 3D
+document.querySelector('.graph3d-popup-overlay').addEventListener('click', closeGraph3dPopup);
+document.querySelector('.graph3d-popup-close').addEventListener('click', closeGraph3dPopup);
+document.getElementById('graph3dPopupIaBtn').addEventListener('click', () => {
+    const iaText = document.getElementById('graph3dPopupIaText');
+    iaText.classList.toggle('hidden');
 });
 
 // === Service Worker ===
