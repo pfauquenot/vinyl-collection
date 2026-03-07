@@ -3268,7 +3268,7 @@ function buildGraph(list) {
                 mat.map = getPlaceholderTexture();
                 mat.needsUpdate = true;
             });
-            tex.colorSpace = THREE.SRGBColorSpace;
+            tex.encoding = THREE.sRGBEncoding;
             mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
         } else {
             mat = new THREE.MeshBasicMaterial({ map: getPlaceholderTexture(), side: THREE.DoubleSide });
