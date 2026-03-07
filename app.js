@@ -1153,7 +1153,8 @@ function render() {
         graph3dView.classList.remove('hidden');
         document.body.classList.remove('gallery-mode');
         document.body.classList.remove('table-mode');
-        render3DGraph(list);
+        // Attendre que le conteneur ait ses dimensions après display
+        requestAnimationFrame(() => render3DGraph(list));
     } else {
         galleryView.classList.add('hidden');
         graph3dView.classList.add('hidden');
@@ -3168,7 +3169,7 @@ let graph3dNodes = [];
 let graph3dEdges = [];
 let graph3dLineMesh = null;
 let raycaster3d = null;
-let mouse3d = new THREE.Vector2();
+let mouse3d = null;
 let graph3dInitialized = false;
 let graph3dVinylsHash = '';
 
@@ -3224,6 +3225,7 @@ function init3DScene() {
     controls3d.maxDistance = 500;
 
     raycaster3d = new THREE.Raycaster();
+    mouse3d = new THREE.Vector2();
 
     // Lumière ambiante douce
     scene3d.add(new THREE.AmbientLight(0xffffff, 1));
@@ -3451,6 +3453,12 @@ function animate3D() {
 }
 
 function render3DGraph(list) {
+    // Vérifier que Three.js est disponible
+    if (typeof THREE === 'undefined') {
+        graph3dView.innerHTML = '<p style="color:#fff;text-align:center;padding:40px">Chargement de Three.js en cours…</p>';
+        return;
+    }
+
     // Hash pour détecter les changements
     const hash = list.map(v => v.id).sort().join(',');
     if (hash === graph3dVinylsHash && graph3dInitialized) return;
