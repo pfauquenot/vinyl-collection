@@ -1997,6 +1997,119 @@ iaPromptSave.addEventListener('click', async () => {
     }
 });
 
+// === Actualiser prompt IA ===
+function buildCatalogueFromVinyls() {
+    const byNote = {};
+    for (const v of vinyls) {
+        const note = v.goût;
+        if (note === '' || note == null) continue;
+        if (!byNote[note]) byNote[note] = [];
+        byNote[note].push(`${v.artiste} - ${v.album}`);
+    }
+    const notes = Object.keys(byNote).sort((a, b) => parseFloat(b) - parseFloat(a));
+    if (notes.length === 0) return '';
+    let result = 'CATALOGUE DE RÉFÉRENCE DE PIERRE :\n';
+    for (const note of notes) {
+        const label = GOUT_LABELS[note] || '';
+        result += `NOTE ${note} (${label}) :\n`;
+        result += byNote[note].sort().join(' | ') + '\n';
+    }
+    return result;
+}
+
+async function genererProfilSynthétique(catalogueText) {
+    const apiKey = getAnthropicApiKey();
+    if (!apiKey) return '';
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 800,
+            system: `Tu es un analyste musical. On te donne le catalogue de vinyles de Pierre avec ses notes (0=Déteste, 6=Vibre/frissons). Génère un PROFIL SYNTHÉTIQUE concis de ses goûts musicaux en bullet points (commençant par "- "). Identifie : genres/styles préférés, artistes récurrents dans les notes hautes, patterns (acoustique vs électrique, époques, labels, etc.), ce qu'il n'aime pas (notes basses). Sois précis et factuel, base-toi uniquement sur les données. Pas de titre, juste les bullet points.`,
+            messages: [{ role: 'user', content: catalogueText }]
+        })
+    });
+    if (!resp.ok) throw new Error(`Erreur API (${resp.status})`);
+    const data = await resp.json();
+    return data.content?.[0]?.text || '';
+}
+
+document.getElementById('updatePromptBtn').addEventListener('click', async () => {
+    if (currentUserRole !== 'admin') return;
+    const btn = document.getElementById('updatePromptBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Actualisation…';
+
+    try {
+        const catalogueText = buildCatalogueFromVinyls();
+        if (!catalogueText) {
+            alert('Aucun vinyle noté dans la base.');
+            return;
+        }
+
+        // Get current prompt
+        let prompt = getIaPrompt();
+
+        // Generate new profile via Anthropic
+        let profilText = '';
+        try {
+            profilText = await genererProfilSynthétique(catalogueText);
+        } catch (err) {
+            console.warn('Impossible de générer le profil IA:', err);
+        }
+
+        // Replace CATALOGUE section
+        const catalogueRegex = /CATALOGUE DE RÉFÉRENCE[^\n]*:\n[\s\S]*?(?=PROFIL SYNTHÉTIQUE|FORMAT DE RÉPONSE)/;
+        const profilRegex = /PROFIL SYNTHÉTIQUE[^\n]*:\n[\s\S]*?(?=FORMAT DE RÉPONSE)/;
+
+        if (catalogueRegex.test(prompt)) {
+            prompt = prompt.replace(catalogueRegex, catalogueText);
+        } else {
+            // Insert before FORMAT DE RÉPONSE if no existing catalogue section
+            const formatIdx = prompt.indexOf('FORMAT DE RÉPONSE');
+            if (formatIdx !== -1) {
+                prompt = prompt.substring(0, formatIdx) + catalogueText + '\n' + prompt.substring(formatIdx);
+            } else {
+                prompt += '\n' + catalogueText;
+            }
+        }
+
+        // Replace PROFIL SYNTHÉTIQUE section
+        if (profilText) {
+            const newProfil = 'PROFIL SYNTHÉTIQUE :\n' + profilText + '\n';
+            if (profilRegex.test(prompt)) {
+                prompt = prompt.replace(profilRegex, newProfil);
+            } else {
+                const formatIdx = prompt.indexOf('FORMAT DE RÉPONSE');
+                if (formatIdx !== -1) {
+                    prompt = prompt.substring(0, formatIdx) + newProfil + prompt.substring(formatIdx);
+                }
+            }
+        }
+
+        // Open prompt modal with updated content
+        iaPromptModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        iaPromptTextarea.value = prompt;
+        iaPromptStatus.textContent = profilText
+            ? '✓ Catalogue et profil actualisés. Vérifiez et enregistrez.'
+            : '✓ Catalogue actualisé (profil non régénéré). Vérifiez et enregistrez.';
+        iaPromptStatus.className = 'admin-apikey-status admin-apikey-success';
+
+    } catch (err) {
+        alert('Erreur lors de l\'actualisation : ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined">refresh</span> Actualiser prompt IA';
+    }
+});
+
 // === Styles Manager ===
 const manageStylesBtn = document.getElementById('manageStylesBtn');
 const stylesModal = document.getElementById('stylesModal');
