@@ -3131,6 +3131,8 @@ document.addEventListener('keydown', (e) => {
             tokenModal.classList.add('hidden');
         } else if (!document.getElementById('graph3dPopup').classList.contains('hidden')) {
             closeGraph3dPopup();
+        } else if (graph3dLevel === 'genre' && currentView === '3d') {
+            exitPlanet();
         }
     }
 });
@@ -3159,21 +3161,102 @@ hamburgerDropdown.querySelectorAll('.hamburger-item').forEach(item => {
     });
 });
 
-// === Vue 3D — Graphe par genre ===
+// === Vue 3D — Galaxie de genres ===
 let scene3d = null;
 let camera3d = null;
 let renderer3d = null;
 let controls3d = null;
 let graph3dAnimId = null;
-let graph3dNodes = [];
-let graph3dEdges = [];
-let graph3dLineMesh = null;
 let raycaster3d = null;
 let mouse3d = null;
 let graph3dInitialized = false;
 let graph3dVinylsHash = '';
 
-// Placeholder canvas pour les pochettes manquantes
+// Niveau de navigation : 'galaxy' (planètes) ou 'genre' (albums dans une planète)
+let graph3dLevel = 'galaxy';
+let graph3dPlanets = [];       // { mesh, labelSprite, genre, vinyls, radius, vx, vy, vz }
+let graph3dAlbumNodes = [];    // { mesh, vinyl } — quand on est dans un genre
+let graph3dCurrentGenre = '';  // genre actif quand level === 'genre'
+let graph3dCurrentVinyls = []; // liste complète pour pouvoir revenir
+
+// Couleurs pour les planètes
+const PLANET_COLORS = [
+    0xFF6533, 0x0A505C, 0x8B5CF6, 0xEC4899, 0x10B981,
+    0xF59E0B, 0x3B82F6, 0xEF4444, 0x6366F1, 0x14B8A6,
+    0xF97316, 0x84CC16, 0xA855F7, 0x06B6D4, 0xE11D48,
+    0x7C3AED, 0x059669, 0xD97706, 0x2563EB, 0xDB2777
+];
+
+function createPlanetTexture(genre, count, color) {
+    const size = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // Fond avec dégradé radial
+    const hex = '#' + color.toString(16).padStart(6, '0');
+    const grd = ctx.createRadialGradient(size/2, size/2, size * 0.1, size/2, size/2, size/2);
+    grd.addColorStop(0, hex);
+    grd.addColorStop(0.7, hex + 'AA');
+    grd.addColorStop(1, hex + '33');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Effet de surface (bruit subtil)
+    for (let i = 0; i < 80; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const r = Math.random() * size * 0.4;
+        const x = size/2 + Math.cos(angle) * r;
+        const y = size/2 + Math.sin(angle) * r;
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.beginPath();
+        ctx.arc(x, y, Math.random() * 15 + 5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Nombre d'albums au centre
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold ' + (size * 0.22) + 'px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 10;
+    ctx.fillText(count, size/2, size/2);
+
+    return canvas;
+}
+
+function createLabelSprite(text, color) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.font = 'bold 48px Inter, sans-serif';
+    const metrics = ctx.measureText(text);
+    const w = Math.ceil(metrics.width) + 40;
+    canvas.width = w;
+    canvas.height = 72;
+    ctx.clearRect(0, 0, w, 72);
+    // Fond semi-transparent
+    ctx.fillStyle = 'rgba(10,10,18,0.7)';
+    ctx.beginPath();
+    ctx.roundRect(0, 0, w, 72, 12);
+    ctx.fill();
+    // Texte
+    ctx.font = 'bold 48px Inter, sans-serif';
+    ctx.fillStyle = '#' + color.toString(16).padStart(6, '0');
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, w/2, 38);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(w / 48, 72 / 48, 1);
+    return sprite;
+}
+
 function createPlaceholderTexture() {
     const canvas = document.createElement('canvas');
     canvas.width = 128;
@@ -3190,7 +3273,6 @@ function createPlaceholderTexture() {
 }
 
 let placeholderTex = null;
-
 function getPlaceholderTexture() {
     if (!placeholderTex) placeholderTex = createPlaceholderTexture();
     return placeholderTex;
@@ -3198,7 +3280,6 @@ function getPlaceholderTexture() {
 
 function init3DScene() {
     const container = graph3dView;
-    // Nettoyage si déjà initialisé
     if (renderer3d) {
         if (graph3dAnimId) cancelAnimationFrame(graph3dAnimId);
         renderer3d.dispose();
@@ -3210,8 +3291,8 @@ function init3DScene() {
 
     const w = container.clientWidth || window.innerWidth;
     const h = container.clientHeight || (window.innerHeight - 200);
-    camera3d = new THREE.PerspectiveCamera(60, w / h, 0.1, 2000);
-    camera3d.position.set(0, 0, 120);
+    camera3d = new THREE.PerspectiveCamera(60, w / h, 0.1, 5000);
+    camera3d.position.set(0, 0, 200);
 
     renderer3d = new THREE.WebGLRenderer({ antialias: true });
     renderer3d.setSize(w, h);
@@ -3221,21 +3302,45 @@ function init3DScene() {
     controls3d = new THREE.OrbitControls(camera3d, renderer3d.domElement);
     controls3d.enableDamping = true;
     controls3d.dampingFactor = 0.08;
-    controls3d.minDistance = 10;
-    controls3d.maxDistance = 500;
+    controls3d.minDistance = 5;
+    controls3d.maxDistance = 1000;
 
     raycaster3d = new THREE.Raycaster();
     mouse3d = new THREE.Vector2();
 
-    // Lumière ambiante douce
     scene3d.add(new THREE.AmbientLight(0xffffff, 1));
+
+    // Étoiles de fond
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = 1500;
+    const starPos = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount * 3; i++) {
+        starPos[i] = (Math.random() - 0.5) * 2000;
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.5, transparent: true, opacity: 0.6 });
+    scene3d.add(new THREE.Points(starGeo, starMat));
 
     graph3dInitialized = true;
 }
 
-function buildGraph(list) {
-    // Nettoyer les anciens nœuds et arêtes
-    graph3dNodes.forEach(n => {
+// Nettoyer la scène 3D (sauf étoiles et lumières)
+function clearScene3d() {
+    graph3dPlanets.forEach(p => {
+        scene3d.remove(p.mesh);
+        scene3d.remove(p.labelSprite);
+        if (p.mesh.material.map) p.mesh.material.map.dispose();
+        p.mesh.material.dispose();
+        p.mesh.geometry.dispose();
+        p.labelSprite.material.map.dispose();
+        p.labelSprite.material.dispose();
+    });
+    graph3dPlanets = [];
+    clearAlbumNodes();
+}
+
+function clearAlbumNodes() {
+    graph3dAlbumNodes.forEach(n => {
         scene3d.remove(n.mesh);
         if (n.mesh.material.map && n.mesh.material.map !== getPlaceholderTexture()) {
             n.mesh.material.map.dispose();
@@ -3243,28 +3348,115 @@ function buildGraph(list) {
         n.mesh.material.dispose();
         n.mesh.geometry.dispose();
     });
-    if (graph3dLineMesh) {
-        scene3d.remove(graph3dLineMesh);
-        graph3dLineMesh.geometry.dispose();
-        graph3dLineMesh.material.dispose();
-        graph3dLineMesh = null;
-    }
-    graph3dNodes = [];
-    graph3dEdges = [];
+    graph3dAlbumNodes = [];
+}
 
-    if (list.length === 0) return;
+// Construire la vue galaxie (planètes par genre)
+function buildGalaxy(list) {
+    clearScene3d();
+    graph3dLevel = 'galaxy';
+    graph3dCurrentGenre = '';
 
-    const nodeSize = 3;
-    const geo = new THREE.PlaneGeometry(nodeSize, nodeSize);
+    // Grouper par genre
+    const genreMap = {};
+    list.forEach(v => {
+        const genres = v.genre || [];
+        if (genres.length === 0) {
+            if (!genreMap['Sans genre']) genreMap['Sans genre'] = [];
+            genreMap['Sans genre'].push(v);
+        } else {
+            genres.forEach(g => {
+                if (!genreMap[g]) genreMap[g] = [];
+                genreMap[g].push(v);
+            });
+        }
+    });
+
+    const genreEntries = Object.entries(genreMap).sort((a, b) => b[1].length - a[1].length);
+    if (genreEntries.length === 0) return;
+
+    const maxCount = genreEntries[0][1].length;
+    const minRadius = 4;
+    const maxRadius = 20;
+
+    // Disposition en spirale
+    genreEntries.forEach(([genre, genreVinyls], i) => {
+        const color = PLANET_COLORS[i % PLANET_COLORS.length];
+        const ratio = genreVinyls.length / maxCount;
+        const radius = minRadius + ratio * (maxRadius - minRadius);
+
+        // Texture de la planète
+        const canvas = createPlanetTexture(genre, genreVinyls.length, color);
+        const tex = new THREE.CanvasTexture(canvas);
+        const geo = new THREE.SphereGeometry(radius, 32, 32);
+        const mat = new THREE.MeshBasicMaterial({ map: tex });
+        const mesh = new THREE.Mesh(geo, mat);
+
+        // Position en spirale dorée
+        const angle = i * 2.399963; // angle d'or
+        const spiralRadius = 30 + i * 8;
+        mesh.position.set(
+            Math.cos(angle) * spiralRadius,
+            (Math.random() - 0.5) * 30,
+            Math.sin(angle) * spiralRadius
+        );
+
+        scene3d.add(mesh);
+
+        // Label sous la planète
+        const label = createLabelSprite(genre, color);
+        label.position.copy(mesh.position);
+        label.position.y -= radius + 3;
+        scene3d.add(label);
+
+        graph3dPlanets.push({
+            mesh,
+            labelSprite: label,
+            genre,
+            vinyls: genreVinyls,
+            radius,
+            color,
+            vx: 0, vy: 0, vz: 0
+        });
+    });
+
+    // Ajuster la caméra pour voir toutes les planètes
+    const lastPlanet = graph3dPlanets[graph3dPlanets.length - 1];
+    const maxDist = lastPlanet ? lastPlanet.mesh.position.length() + lastPlanet.radius : 100;
+    camera3d.position.set(0, maxDist * 0.5, maxDist * 1.2);
+    controls3d.target.set(0, 0, 0);
+    controls3d.update();
+
+    // Afficher/masquer bouton retour
+    updateBackButton();
+}
+
+// Entrer dans une planète (vue albums)
+function enterPlanet(planet) {
+    // Masquer toutes les planètes
+    graph3dPlanets.forEach(p => {
+        p.mesh.visible = false;
+        p.labelSprite.visible = false;
+    });
+
+    graph3dLevel = 'genre';
+    graph3dCurrentGenre = planet.genre;
+
+    const vinylsList = planet.vinyls;
     const textureLoader = new THREE.TextureLoader();
     textureLoader.crossOrigin = 'anonymous';
 
-    // Créer les nœuds
-    list.forEach((v, i) => {
+    // Disposer en grille sphérique
+    const nodeSize = 4;
+    const geo = new THREE.PlaneGeometry(nodeSize, nodeSize);
+    const count = vinylsList.length;
+    const cols = Math.ceil(Math.sqrt(count));
+    const spacing = nodeSize * 1.4;
+
+    vinylsList.forEach((v, i) => {
         let mat;
         if (v.coverUrl) {
             const tex = textureLoader.load(v.coverUrl, undefined, undefined, () => {
-                // Fallback si le chargement échoue
                 mat.map = getPlaceholderTexture();
                 mat.needsUpdate = true;
             });
@@ -3276,207 +3468,110 @@ function buildGraph(list) {
 
         const mesh = new THREE.Mesh(geo.clone(), mat);
 
-        // Position initiale aléatoire en sphère
-        const spread = Math.cbrt(list.length) * 12;
+        // Disposition en grille centrée
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const totalRows = Math.ceil(count / cols);
         mesh.position.set(
-            (Math.random() - 0.5) * spread,
-            (Math.random() - 0.5) * spread,
-            (Math.random() - 0.5) * spread
+            (col - (cols - 1) / 2) * spacing,
+            ((totalRows - 1) / 2 - row) * spacing,
+            0
         );
 
         scene3d.add(mesh);
-        graph3dNodes.push({
-            mesh,
-            vinyl: v,
-            vx: 0, vy: 0, vz: 0  // vélocité pour force-directed
-        });
+        graph3dAlbumNodes.push({ mesh, vinyl: v });
     });
 
-    // Créer les arêtes (genre en commun)
-    for (let i = 0; i < list.length; i++) {
-        const genresA = list[i].genre || [];
-        if (genresA.length === 0) continue;
-        for (let j = i + 1; j < list.length; j++) {
-            const genresB = list[j].genre || [];
-            if (genresB.length === 0) continue;
-            const shared = genresA.some(g => genresB.includes(g));
-            if (shared) {
-                graph3dEdges.push([i, j]);
-            }
-        }
-    }
+    // Caméra face à la grille
+    const gridWidth = cols * spacing;
+    const gridHeight = Math.ceil(count / cols) * spacing;
+    const maxDim = Math.max(gridWidth, gridHeight);
+    camera3d.position.set(0, 0, maxDim * 1.1);
+    controls3d.target.set(0, 0, 0);
+    controls3d.update();
 
-    updateEdgeGeometry();
+    updateBackButton();
 }
 
-function updateEdgeGeometry() {
-    if (graph3dLineMesh) {
-        scene3d.remove(graph3dLineMesh);
-        graph3dLineMesh.geometry.dispose();
-        graph3dLineMesh.material.dispose();
-    }
-    if (graph3dEdges.length === 0) return;
+// Revenir à la vue galaxie
+function exitPlanet() {
+    clearAlbumNodes();
+    graph3dLevel = 'galaxy';
+    graph3dCurrentGenre = '';
 
-    const positions = new Float32Array(graph3dEdges.length * 6);
-    graph3dEdges.forEach(([i, j], idx) => {
-        const pi = graph3dNodes[i].mesh.position;
-        const pj = graph3dNodes[j].mesh.position;
-        positions[idx * 6] = pi.x;
-        positions[idx * 6 + 1] = pi.y;
-        positions[idx * 6 + 2] = pi.z;
-        positions[idx * 6 + 3] = pj.x;
-        positions[idx * 6 + 4] = pj.y;
-        positions[idx * 6 + 5] = pj.z;
+    // Réafficher les planètes
+    graph3dPlanets.forEach(p => {
+        p.mesh.visible = true;
+        p.labelSprite.visible = true;
     });
 
-    const lineGeo = new THREE.BufferGeometry();
-    lineGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const lineMat = new THREE.LineBasicMaterial({
-        color: 0x0A505C,
-        transparent: true,
-        opacity: 0.3
-    });
-    graph3dLineMesh = new THREE.LineSegments(lineGeo, lineMat);
-    scene3d.add(graph3dLineMesh);
+    // Recaler la caméra
+    const lastPlanet = graph3dPlanets[graph3dPlanets.length - 1];
+    const maxDist = lastPlanet ? lastPlanet.mesh.position.length() + lastPlanet.radius : 100;
+    camera3d.position.set(0, maxDist * 0.5, maxDist * 1.2);
+    controls3d.target.set(0, 0, 0);
+    controls3d.update();
+
+    updateBackButton();
 }
 
-// Simulation force-directed
-let forceIterations = 0;
-const MAX_FORCE_ITERATIONS = 300;
-
-function stepForceLayout() {
-    if (forceIterations >= MAX_FORCE_ITERATIONS) return;
-    forceIterations++;
-
-    const nodes = graph3dNodes;
-    const n = nodes.length;
-    if (n < 2) return;
-
-    const repulsionStrength = 200;
-    const attractionStrength = 0.008;
-    const damping = 0.85;
-    const maxSpeed = 2;
-
-    // Répulsion entre tous les nœuds
-    for (let i = 0; i < n; i++) {
-        for (let j = i + 1; j < n; j++) {
-            const pi = nodes[i].mesh.position;
-            const pj = nodes[j].mesh.position;
-            let dx = pi.x - pj.x;
-            let dy = pi.y - pj.y;
-            let dz = pi.z - pj.z;
-            let dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            if (dist < 0.5) dist = 0.5;
-            const force = repulsionStrength / (dist * dist);
-            const fx = (dx / dist) * force;
-            const fy = (dy / dist) * force;
-            const fz = (dz / dist) * force;
-            nodes[i].vx += fx;
-            nodes[i].vy += fy;
-            nodes[i].vz += fz;
-            nodes[j].vx -= fx;
-            nodes[j].vy -= fy;
-            nodes[j].vz -= fz;
-        }
-    }
-
-    // Attraction sur les arêtes
-    graph3dEdges.forEach(([i, j]) => {
-        const pi = nodes[i].mesh.position;
-        const pj = nodes[j].mesh.position;
-        const dx = pj.x - pi.x;
-        const dy = pj.y - pi.y;
-        const dz = pj.z - pi.z;
-        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        const idealDist = 15;
-        const force = (dist - idealDist) * attractionStrength;
-        const fx = (dx / dist) * force;
-        const fy = (dy / dist) * force;
-        const fz = (dz / dist) * force;
-        nodes[i].vx += fx;
-        nodes[i].vy += fy;
-        nodes[i].vz += fz;
-        nodes[j].vx -= fx;
-        nodes[j].vy -= fy;
-        nodes[j].vz -= fz;
-    });
-
-    // Centrage léger vers l'origine
-    const centerForce = 0.01;
-    nodes.forEach(node => {
-        node.vx -= node.mesh.position.x * centerForce;
-        node.vy -= node.mesh.position.y * centerForce;
-        node.vz -= node.mesh.position.z * centerForce;
-    });
-
-    // Appliquer vélocité avec damping
-    nodes.forEach(node => {
-        node.vx *= damping;
-        node.vy *= damping;
-        node.vz *= damping;
-        // Limiter la vitesse
-        const speed = Math.sqrt(node.vx * node.vx + node.vy * node.vy + node.vz * node.vz);
-        if (speed > maxSpeed) {
-            node.vx = (node.vx / speed) * maxSpeed;
-            node.vy = (node.vy / speed) * maxSpeed;
-            node.vz = (node.vz / speed) * maxSpeed;
-        }
-        node.mesh.position.x += node.vx;
-        node.mesh.position.y += node.vy;
-        node.mesh.position.z += node.vz;
-    });
-
-    // Mettre à jour les arêtes
-    if (graph3dLineMesh && graph3dEdges.length > 0) {
-        const pos = graph3dLineMesh.geometry.attributes.position.array;
-        graph3dEdges.forEach(([i, j], idx) => {
-            const pi = nodes[i].mesh.position;
-            const pj = nodes[j].mesh.position;
-            pos[idx * 6] = pi.x;
-            pos[idx * 6 + 1] = pi.y;
-            pos[idx * 6 + 2] = pi.z;
-            pos[idx * 6 + 3] = pj.x;
-            pos[idx * 6 + 4] = pj.y;
-            pos[idx * 6 + 5] = pj.z;
-        });
-        graph3dLineMesh.geometry.attributes.position.needsUpdate = true;
+function updateBackButton() {
+    const btn = document.getElementById('graph3dBackBtn');
+    if (!btn) return;
+    if (graph3dLevel === 'genre') {
+        btn.classList.remove('hidden');
+        btn.textContent = '← ' + graph3dCurrentGenre;
+    } else {
+        btn.classList.add('hidden');
     }
 }
 
+// Rotation lente des planètes
 function animate3D() {
     graph3dAnimId = requestAnimationFrame(animate3D);
-    stepForceLayout();
-    // Faire face à la caméra (billboard)
-    graph3dNodes.forEach(n => n.mesh.quaternion.copy(camera3d.quaternion));
+
+    if (graph3dLevel === 'galaxy') {
+        graph3dPlanets.forEach(p => {
+            p.mesh.rotation.y += 0.003;
+        });
+    } else {
+        // Billboard pour les pochettes
+        graph3dAlbumNodes.forEach(n => n.mesh.quaternion.copy(camera3d.quaternion));
+    }
+
     controls3d.update();
     renderer3d.render(scene3d, camera3d);
 }
 
 function render3DGraph(list) {
-    // Vérifier que Three.js est disponible
     if (typeof THREE === 'undefined') {
         graph3dView.innerHTML = '<p style="color:#fff;text-align:center;padding:40px">Chargement de Three.js en cours…</p>';
         return;
     }
 
-    // Hash pour détecter les changements
     const hash = list.map(v => v.id).sort().join(',');
     if (hash === graph3dVinylsHash && graph3dInitialized) return;
     graph3dVinylsHash = hash;
+    graph3dCurrentVinyls = list;
 
     if (!graph3dInitialized) {
         init3DScene();
+        // Ajouter bouton retour
+        const backBtn = document.createElement('button');
+        backBtn.id = 'graph3dBackBtn';
+        backBtn.className = 'graph3d-back-btn hidden';
+        backBtn.addEventListener('click', exitPlanet);
+        graph3dView.appendChild(backBtn);
     }
 
-    forceIterations = 0;
-    buildGraph(list);
+    buildGalaxy(list);
 
     if (!graph3dAnimId) {
         animate3D();
     }
 }
 
-// Redimensionnement du canvas 3D
+// Redimensionnement
 window.addEventListener('resize', () => {
     if (!renderer3d || currentView !== '3d') return;
     const container = graph3dView;
@@ -3487,19 +3582,35 @@ window.addEventListener('resize', () => {
     renderer3d.setSize(w, h);
 });
 
-// Clic sur un nœud 3D — raycasting
+// Clic — raycasting
 graph3dView.addEventListener('click', (e) => {
-    if (!renderer3d || graph3dNodes.length === 0) return;
+    if (!renderer3d || !mouse3d) return;
+    // Ignorer les clics sur le bouton retour
+    if (e.target.id === 'graph3dBackBtn') return;
+
     const rect = renderer3d.domElement.getBoundingClientRect();
     mouse3d.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     mouse3d.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     raycaster3d.setFromCamera(mouse3d, camera3d);
-    const meshes = graph3dNodes.map(n => n.mesh);
-    const intersects = raycaster3d.intersectObjects(meshes);
-    if (intersects.length > 0) {
-        const hit = intersects[0].object;
-        const node = graph3dNodes.find(n => n.mesh === hit);
-        if (node) openGraph3dPopup(node.vinyl);
+
+    if (graph3dLevel === 'galaxy') {
+        // Clic sur une planète → entrer dedans
+        const meshes = graph3dPlanets.map(p => p.mesh);
+        const intersects = raycaster3d.intersectObjects(meshes);
+        if (intersects.length > 0) {
+            const hit = intersects[0].object;
+            const planet = graph3dPlanets.find(p => p.mesh === hit);
+            if (planet) enterPlanet(planet);
+        }
+    } else {
+        // Clic sur un album → popup
+        const meshes = graph3dAlbumNodes.map(n => n.mesh);
+        const intersects = raycaster3d.intersectObjects(meshes);
+        if (intersects.length > 0) {
+            const hit = intersects[0].object;
+            const node = graph3dAlbumNodes.find(n => n.mesh === hit);
+            if (node) openGraph3dPopup(node.vinyl);
+        }
     }
 });
 
@@ -3513,7 +3624,6 @@ function openGraph3dPopup(vinyl) {
     const iaBtn = document.getElementById('graph3dPopupIaBtn');
     const iaText = document.getElementById('graph3dPopupIaText');
 
-    // Pochette
     if (vinyl.coverUrl) {
         coverEl.src = vinyl.coverUrl;
         coverEl.style.display = '';
@@ -3525,7 +3635,6 @@ function openGraph3dPopup(vinyl) {
     artistEl.textContent = vinyl.artiste || '';
     albumEl.textContent = vinyl.album || '';
 
-    // Notes
     const gVal = vinyl.goût || '';
     const aVal = vinyl.audio || '';
     const eVal = vinyl.energie || '';
@@ -3553,7 +3662,6 @@ function openGraph3dPopup(vinyl) {
         </div>
     `;
 
-    // Avis IA
     if (vinyl.avisIA && vinyl.avisIA.trim()) {
         iaBtn.classList.remove('hidden');
         iaText.innerHTML = parseMarkdown(vinyl.avisIA);
