@@ -2035,6 +2035,26 @@ header .btn-small:hover {
     display: none !important;
 }
 
+.graph3d-tooltip {
+    position: absolute;
+    z-index: 10;
+    background: rgba(10, 10, 18, 0.9);
+    color: #fff;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    pointer-events: none;
+    white-space: nowrap;
+    backdrop-filter: blur(8px);
+    font-family: inherit;
+}
+
+.graph3d-tooltip.hidden {
+    display: none !important;
+}
+
 /* Popup 3D */
 .graph3d-popup {
     position: fixed;

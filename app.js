@@ -3174,10 +3174,11 @@ let graph3dVinylsHash = '';
 
 // Niveau de navigation : 'galaxy' (planètes) ou 'genre' (albums dans une planète)
 let graph3dLevel = 'galaxy';
-let graph3dPlanets = [];       // { mesh, labelSprite, genre, vinyls, radius, vx, vy, vz }
+let graph3dPlanets = [];       // { mesh, genre, vinyls, radius, color }
 let graph3dAlbumNodes = [];    // { mesh, vinyl } — quand on est dans un genre
 let graph3dCurrentGenre = '';  // genre actif quand level === 'genre'
 let graph3dCurrentVinyls = []; // liste complète pour pouvoir revenir
+let graph3dHoveredPlanet = null; // planète survolée
 
 // Couleurs pour les planètes
 const PLANET_COLORS = [
@@ -3227,34 +3228,6 @@ function createPlanetTexture(genre, count, color) {
     ctx.fillText(count, size/2, size/2);
 
     return canvas;
-}
-
-function createLabelSprite(text, color) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    ctx.font = 'bold 48px Inter, sans-serif';
-    const metrics = ctx.measureText(text);
-    const w = Math.ceil(metrics.width) + 40;
-    canvas.width = w;
-    canvas.height = 72;
-    ctx.clearRect(0, 0, w, 72);
-    // Fond semi-transparent
-    ctx.fillStyle = 'rgba(10,10,18,0.7)';
-    ctx.beginPath();
-    ctx.roundRect(0, 0, w, 72, 12);
-    ctx.fill();
-    // Texte
-    ctx.font = 'bold 48px Inter, sans-serif';
-    ctx.fillStyle = '#' + color.toString(16).padStart(6, '0');
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, w/2, 38);
-
-    const tex = new THREE.CanvasTexture(canvas);
-    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-    const sprite = new THREE.Sprite(mat);
-    sprite.scale.set(w / 48, 72 / 48, 1);
-    return sprite;
 }
 
 function createPlaceholderTexture() {
@@ -3328,14 +3301,12 @@ function init3DScene() {
 function clearScene3d() {
     graph3dPlanets.forEach(p => {
         scene3d.remove(p.mesh);
-        scene3d.remove(p.labelSprite);
         if (p.mesh.material.map) p.mesh.material.map.dispose();
         p.mesh.material.dispose();
         p.mesh.geometry.dispose();
-        p.labelSprite.material.map.dispose();
-        p.labelSprite.material.dispose();
     });
     graph3dPlanets = [];
+    graph3dHoveredPlanet = null;
     clearAlbumNodes();
 }
 
@@ -3378,8 +3349,13 @@ function buildGalaxy(list) {
     const maxCount = genreEntries[0][1].length;
     const minRadius = 4;
     const maxRadius = 20;
+    const n = genreEntries.length;
 
-    // Disposition en spirale
+    // Distribution sphérique (Fibonacci sphere) pour un vrai volume 3D
+    const goldenRatio = (1 + Math.sqrt(5)) / 2;
+    // Rayon de la galaxie adapté au nombre de genres
+    const galaxyRadius = 30 + n * 5;
+
     genreEntries.forEach(([genre, genreVinyls], i) => {
         const color = PLANET_COLORS[i % PLANET_COLORS.length];
         const ratio = genreVinyls.length / maxCount;
@@ -3392,38 +3368,30 @@ function buildGalaxy(list) {
         const mat = new THREE.MeshBasicMaterial({ map: tex });
         const mesh = new THREE.Mesh(geo, mat);
 
-        // Position en spirale dorée
-        const angle = i * 2.399963; // angle d'or
-        const spiralRadius = 30 + i * 8;
+        // Fibonacci sphere — distribution uniforme en volume
+        const theta = 2 * Math.PI * i / goldenRatio;
+        const phi = Math.acos(1 - 2 * (i + 0.5) / n);
+        // Varier le rayon pour éviter une coquille creuse
+        const r = galaxyRadius * (0.4 + 0.6 * Math.cbrt((i + 1) / n));
         mesh.position.set(
-            Math.cos(angle) * spiralRadius,
-            (Math.random() - 0.5) * 30,
-            Math.sin(angle) * spiralRadius
+            r * Math.sin(phi) * Math.cos(theta),
+            r * Math.cos(phi),
+            r * Math.sin(phi) * Math.sin(theta)
         );
 
         scene3d.add(mesh);
 
-        // Label sous la planète
-        const label = createLabelSprite(genre, color);
-        label.position.copy(mesh.position);
-        label.position.y -= radius + 3;
-        scene3d.add(label);
-
         graph3dPlanets.push({
             mesh,
-            labelSprite: label,
             genre,
             vinyls: genreVinyls,
             radius,
-            color,
-            vx: 0, vy: 0, vz: 0
+            color
         });
     });
 
     // Ajuster la caméra pour voir toutes les planètes
-    const lastPlanet = graph3dPlanets[graph3dPlanets.length - 1];
-    const maxDist = lastPlanet ? lastPlanet.mesh.position.length() + lastPlanet.radius : 100;
-    camera3d.position.set(0, maxDist * 0.5, maxDist * 1.2);
+    camera3d.position.set(0, galaxyRadius * 0.6, galaxyRadius * 1.5);
     controls3d.target.set(0, 0, 0);
     controls3d.update();
 
@@ -3436,8 +3404,11 @@ function enterPlanet(planet) {
     // Masquer toutes les planètes
     graph3dPlanets.forEach(p => {
         p.mesh.visible = false;
-        p.labelSprite.visible = false;
     });
+    // Masquer le tooltip
+    const tooltip = document.getElementById('graph3dTooltip');
+    if (tooltip) tooltip.classList.add('hidden');
+    graph3dHoveredPlanet = null;
 
     graph3dLevel = 'genre';
     graph3dCurrentGenre = planet.genre;
@@ -3446,12 +3417,13 @@ function enterPlanet(planet) {
     const textureLoader = new THREE.TextureLoader();
     textureLoader.crossOrigin = 'anonymous';
 
-    // Disposer en grille sphérique
     const nodeSize = 4;
     const geo = new THREE.PlaneGeometry(nodeSize, nodeSize);
     const count = vinylsList.length;
-    const cols = Math.ceil(Math.sqrt(count));
-    const spacing = nodeSize * 1.4;
+
+    // Disposition en sphère creuse (Fibonacci sphere) pour voir toutes les pochettes
+    const albumSphereRadius = Math.max(15, Math.sqrt(count) * 4);
+    const gr = (1 + Math.sqrt(5)) / 2;
 
     vinylsList.forEach((v, i) => {
         let mat;
@@ -3468,25 +3440,21 @@ function enterPlanet(planet) {
 
         const mesh = new THREE.Mesh(geo.clone(), mat);
 
-        // Disposition en grille centrée
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const totalRows = Math.ceil(count / cols);
+        // Fibonacci sphere pour distribuer uniformément les pochettes
+        const theta = 2 * Math.PI * i / gr;
+        const phi = Math.acos(1 - 2 * (i + 0.5) / count);
         mesh.position.set(
-            (col - (cols - 1) / 2) * spacing,
-            ((totalRows - 1) / 2 - row) * spacing,
-            0
+            albumSphereRadius * Math.sin(phi) * Math.cos(theta),
+            albumSphereRadius * Math.cos(phi),
+            albumSphereRadius * Math.sin(phi) * Math.sin(theta)
         );
 
         scene3d.add(mesh);
         graph3dAlbumNodes.push({ mesh, vinyl: v });
     });
 
-    // Caméra face à la grille
-    const gridWidth = cols * spacing;
-    const gridHeight = Math.ceil(count / cols) * spacing;
-    const maxDim = Math.max(gridWidth, gridHeight);
-    camera3d.position.set(0, 0, maxDim * 1.1);
+    // Caméra positionnée pour voir la sphère d'albums
+    camera3d.position.set(0, 0, albumSphereRadius * 2.5);
     controls3d.target.set(0, 0, 0);
     controls3d.update();
 
@@ -3502,13 +3470,12 @@ function exitPlanet() {
     // Réafficher les planètes
     graph3dPlanets.forEach(p => {
         p.mesh.visible = true;
-        p.labelSprite.visible = true;
     });
 
     // Recaler la caméra
-    const lastPlanet = graph3dPlanets[graph3dPlanets.length - 1];
-    const maxDist = lastPlanet ? lastPlanet.mesh.position.length() + lastPlanet.radius : 100;
-    camera3d.position.set(0, maxDist * 0.5, maxDist * 1.2);
+    const n = graph3dPlanets.length;
+    const galaxyRadius = 30 + n * 5;
+    camera3d.position.set(0, galaxyRadius * 0.6, galaxyRadius * 1.5);
     controls3d.target.set(0, 0, 0);
     controls3d.update();
 
@@ -3543,6 +3510,49 @@ function animate3D() {
     renderer3d.render(scene3d, camera3d);
 }
 
+// Hover sur les planètes — tooltip
+function onGraph3dMouseMove(e) {
+    if (!renderer3d || graph3dLevel !== 'galaxy' || graph3dPlanets.length === 0) {
+        const tooltip = document.getElementById('graph3dTooltip');
+        if (tooltip) tooltip.classList.add('hidden');
+        return;
+    }
+
+    const rect = renderer3d.domElement.getBoundingClientRect();
+    mouse3d.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse3d.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster3d.setFromCamera(mouse3d, camera3d);
+
+    const meshes = graph3dPlanets.map(p => p.mesh);
+    const intersects = raycaster3d.intersectObjects(meshes);
+    const tooltip = document.getElementById('graph3dTooltip');
+
+    if (intersects.length > 0) {
+        const hit = intersects[0].object;
+        const planet = graph3dPlanets.find(p => p.mesh === hit);
+        if (planet) {
+            renderer3d.domElement.style.cursor = 'pointer';
+            tooltip.textContent = planet.genre + ' (' + planet.vinyls.length + ')';
+            tooltip.style.left = (e.clientX - rect.left + 15) + 'px';
+            tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
+            tooltip.classList.remove('hidden');
+            // Highlight : agrandir légèrement
+            if (graph3dHoveredPlanet && graph3dHoveredPlanet !== planet) {
+                graph3dHoveredPlanet.mesh.scale.set(1, 1, 1);
+            }
+            planet.mesh.scale.set(1.15, 1.15, 1.15);
+            graph3dHoveredPlanet = planet;
+        }
+    } else {
+        renderer3d.domElement.style.cursor = 'default';
+        tooltip.classList.add('hidden');
+        if (graph3dHoveredPlanet) {
+            graph3dHoveredPlanet.mesh.scale.set(1, 1, 1);
+            graph3dHoveredPlanet = null;
+        }
+    }
+}
+
 function render3DGraph(list) {
     if (typeof THREE === 'undefined') {
         graph3dView.innerHTML = '<p style="color:#fff;text-align:center;padding:40px">Chargement de Three.js en cours…</p>';
@@ -3562,6 +3572,15 @@ function render3DGraph(list) {
         backBtn.className = 'graph3d-back-btn hidden';
         backBtn.addEventListener('click', exitPlanet);
         graph3dView.appendChild(backBtn);
+
+        // Tooltip au survol
+        const tooltip = document.createElement('div');
+        tooltip.id = 'graph3dTooltip';
+        tooltip.className = 'graph3d-tooltip hidden';
+        graph3dView.appendChild(tooltip);
+
+        // Écouter le mouvement souris pour le hover
+        renderer3d.domElement.addEventListener('mousemove', onGraph3dMouseMove);
     }
 
     buildGalaxy(list);
