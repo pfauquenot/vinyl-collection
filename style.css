@@ -2008,6 +2008,33 @@ header .btn-small:hover {
     height: 100% !important;
 }
 
+.graph3d-back-btn {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 10;
+    background: rgba(10, 10, 18, 0.85);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 8px 18px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.2s, color 0.2s;
+    font-family: inherit;
+}
+
+.graph3d-back-btn:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
+.graph3d-back-btn.hidden {
+    display: none !important;
+}
+
 /* Popup 3D */
 .graph3d-popup {
     position: fixed;
