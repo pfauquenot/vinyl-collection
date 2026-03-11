@@ -3718,6 +3718,9 @@ const listenCriteriaResult = document.getElementById('listenCriteriaResult');
 document.getElementById('listenBtn').addEventListener('click', () => {
     populateListenCategories();
     populateListenCriteriaSelects();
+    document.getElementById('listenUseGout').checked = false;
+    document.getElementById('listenUseAudio').checked = false;
+    document.getElementById('listenUseEnergie').checked = false;
     listenUnratedResult.classList.add('hidden');
     listenCriteriaResult.classList.add('hidden');
     listenModal.classList.remove('hidden');
