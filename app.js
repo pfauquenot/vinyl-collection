@@ -3712,10 +3712,14 @@ const listenModal = document.getElementById('listenModal');
 const listenCatCheckboxes = document.getElementById('listenCatCheckboxes');
 const listenUnratedResult = document.getElementById('listenUnratedResult');
 
+const listenCriteriaResult = document.getElementById('listenCriteriaResult');
+
 // Bouton pour ouvrir la modale
 document.getElementById('listenBtn').addEventListener('click', () => {
     populateListenCategories();
+    populateListenCriteriaSelects();
     listenUnratedResult.classList.add('hidden');
+    listenCriteriaResult.classList.add('hidden');
     listenModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 });
@@ -3746,6 +3750,7 @@ function populateListenCategories() {
         const cb = document.createElement('input');
         cb.type = 'checkbox';
         cb.value = cat;
+        cb.defaultChecked = true;
         cb.checked = true;
         label.appendChild(cb);
         label.appendChild(document.createTextNode(' ' + cat));
@@ -3767,34 +3772,133 @@ function getUnratedAlbums() {
     });
 }
 
-// Afficher la sélection
+// Afficher la sélection (section 1)
 document.getElementById('listenShowUnrated').addEventListener('click', () => {
     const albums = getUnratedAlbums();
-    renderListenResult(albums);
+    renderListenResult(listenUnratedResult, albums);
 });
 
-// Choisi pour moi — un album au hasard
+// Choisi pour moi (section 1)
 document.getElementById('listenRandomUnrated').addEventListener('click', () => {
     const albums = getUnratedAlbums();
     if (albums.length === 0) {
-        renderListenResult([]);
+        renderListenResult(listenUnratedResult, []);
         return;
     }
     const pick = albums[Math.floor(Math.random() * albums.length)];
-    renderListenResult([pick], true);
+    renderListenResult(listenUnratedResult, [pick], true);
 });
 
-function renderListenResult(albums, isRandom) {
-    listenUnratedResult.classList.remove('hidden');
+// === Section 2 : Écouter par critère ===
+
+function populateListenCriteriaSelects() {
+    const goutSelect = document.getElementById('listenGoutVal');
+    const audioSelect = document.getElementById('listenAudioVal');
+    const energieSelect = document.getElementById('listenEnergieVal');
+
+    // Remplir uniquement si pas déjà fait
+    if (goutSelect.options.length <= 1) {
+        Object.entries(GOUT_LABELS).forEach(([k, v]) => {
+            const opt = document.createElement('option');
+            opt.value = k;
+            opt.textContent = k + ' – ' + v;
+            goutSelect.appendChild(opt);
+        });
+    }
+    if (audioSelect.options.length <= 1) {
+        Object.entries(AUDIO_LABELS).forEach(([k, v]) => {
+            const opt = document.createElement('option');
+            opt.value = k;
+            opt.textContent = k + ' – ' + v;
+            audioSelect.appendChild(opt);
+        });
+    }
+    if (energieSelect.options.length <= 1) {
+        Object.entries(ENERGIE_LABELS).forEach(([k, v]) => {
+            const opt = document.createElement('option');
+            opt.value = k;
+            opt.textContent = k + ' – ' + v;
+            energieSelect.appendChild(opt);
+        });
+    }
+
+    // Par défaut : "Non noté" sélectionné
+    goutSelect.value = '';
+    audioSelect.value = '';
+    energieSelect.value = '';
+}
+
+function getCriteriaAlbums() {
+    const useGout = document.getElementById('listenUseGout').checked;
+    const useAudio = document.getElementById('listenUseAudio').checked;
+    const useEnergie = document.getElementById('listenUseEnergie').checked;
+    const goutVal = document.getElementById('listenGoutVal').value;
+    const audioVal = document.getElementById('listenAudioVal').value;
+    const energieVal = document.getElementById('listenEnergieVal').value;
+
+    // Au moins un critère actif
+    if (!useGout && !useAudio && !useEnergie) return [];
+
+    // Filtrer les albums correspondants
+    const matching = vinyls.filter(v => {
+        if (useGout) {
+            if (goutVal === '') { if (v.goût) return false; }
+            else { if (v.goût !== goutVal) return false; }
+        }
+        if (useAudio) {
+            if (audioVal === '') { if (v.audio) return false; }
+            else { if (v.audio !== audioVal) return false; }
+        }
+        if (useEnergie) {
+            if (energieVal === '') { if (v.energie) return false; }
+            else { if (v.energie !== energieVal) return false; }
+        }
+        return true;
+    });
+
+    // Tri : albums non notés en priorité (ceux qui ont le plus de notes manquantes en premier)
+    matching.sort((a, b) => {
+        const missingA = (!a.goût ? 1 : 0) + (!a.audio ? 1 : 0) + (!a.energie ? 1 : 0);
+        const missingB = (!b.goût ? 1 : 0) + (!b.audio ? 1 : 0) + (!b.energie ? 1 : 0);
+        return missingB - missingA;
+    });
+
+    return matching;
+}
+
+// Afficher la sélection (section 2)
+document.getElementById('listenShowCriteria').addEventListener('click', () => {
+    const albums = getCriteriaAlbums();
+    renderListenResult(listenCriteriaResult, albums, false, true);
+});
+
+// Choisi pour moi (section 2)
+document.getElementById('listenRandomCriteria').addEventListener('click', () => {
+    const albums = getCriteriaAlbums();
     if (albums.length === 0) {
-        listenUnratedResult.innerHTML = '<p class="listen-empty">Aucun album trouvé pour ces critères.</p>';
+        renderListenResult(listenCriteriaResult, []);
+        return;
+    }
+    // Priorité aléatoire parmi les non notés si possible
+    const unrated = albums.filter(v => !v.goût || !v.audio || !v.energie);
+    const pool = unrated.length > 0 ? unrated : albums;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    renderListenResult(listenCriteriaResult, [pick], true, true);
+});
+
+// === Rendu des résultats (partagé) ===
+
+function renderListenResult(container, albums, isRandom, showRatings) {
+    container.classList.remove('hidden');
+    if (albums.length === 0) {
+        container.innerHTML = '<p class="listen-empty">Aucun album trouvé pour ces critères.</p>';
         return;
     }
     let html = '';
     if (isRandom) {
         html += '<p class="listen-result-count">Suggestion :</p>';
     } else {
-        html += '<p class="listen-result-count">' + albums.length + ' album' + (albums.length > 1 ? 's' : '') + ' à noter :</p>';
+        html += '<p class="listen-result-count">' + albums.length + ' album' + (albums.length > 1 ? 's' : '') + ' :</p>';
     }
     html += '<div class="listen-result-grid">';
     albums.forEach(v => {
@@ -3803,20 +3907,30 @@ function renderListenResult(albums, isRandom) {
         if (!v.goût) missing.push('Goût');
         if (!v.audio) missing.push('Audio');
         if (!v.energie) missing.push('Énergie');
+        let detail = '';
+        if (missing.length > 0) {
+            detail = '<div class="listen-result-missing">Manque : ' + missing.join(', ') + '</div>';
+        } else if (showRatings) {
+            detail = '<div class="listen-result-ratings">'
+                + '<span title="Goût">❤ ' + v.goût + '</span>'
+                + '<span title="Audio">🎧 ' + v.audio + '</span>'
+                + '<span title="Énergie">⚡ ' + v.energie + '</span>'
+                + '</div>';
+        }
         html += '<div class="listen-result-item" data-id="' + esc(v.id) + '">'
             + cover
             + '<div class="listen-result-info">'
             + '<div class="listen-result-artist">' + esc(v.artiste || '') + '</div>'
             + '<div class="listen-result-album">' + esc(v.album || '') + '</div>'
-            + '<div class="listen-result-missing">Manque : ' + missing.join(', ') + '</div>'
+            + detail
             + '</div>'
             + '</div>';
     });
     html += '</div>';
-    listenUnratedResult.innerHTML = html;
+    container.innerHTML = html;
 
     // Clic sur un album → ouvrir sa fiche
-    listenUnratedResult.querySelectorAll('.listen-result-item').forEach(el => {
+    container.querySelectorAll('.listen-result-item').forEach(el => {
         el.addEventListener('click', () => {
             const id = el.dataset.id;
             closeListenModal();
