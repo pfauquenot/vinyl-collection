@@ -3750,8 +3750,8 @@ function populateListenCategories() {
         const cb = document.createElement('input');
         cb.type = 'checkbox';
         cb.value = cat;
-        cb.defaultChecked = true;
-        cb.checked = true;
+        cb.defaultChecked = false;
+        cb.checked = false;
         label.appendChild(cb);
         label.appendChild(document.createTextNode(' ' + cat));
         listenCatCheckboxes.appendChild(label);
@@ -3765,8 +3765,8 @@ function getUnratedAlbums() {
         // Pas de note : goût OU audio OU energie manquant
         const unrated = !v.goût || !v.audio || !v.energie;
         if (!unrated) return false;
-        // Filtre par rangement
-        if (selectedCats.length === 0) return true;
+        // Filtre par rangement — rien coché = rien affiché
+        if (selectedCats.length === 0) return false;
         const cats = v.categorie || [];
         return cats.some(c => selectedCats.includes(c));
     });
