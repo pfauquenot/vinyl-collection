@@ -3746,6 +3746,7 @@ function populateListenCategories() {
         const cb = document.createElement('input');
         cb.type = 'checkbox';
         cb.value = cat;
+        cb.defaultChecked = true;
         cb.checked = true;
         label.appendChild(cb);
         label.appendChild(document.createTextNode(' ' + cat));
