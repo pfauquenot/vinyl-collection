@@ -2401,6 +2401,52 @@ header .btn-small:hover {
     margin-top: 2px;
 }
 
+.listen-result-ratings {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    display: flex;
+    gap: 8px;
+}
+
+.listen-criteria-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.listen-criteria-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.listen-criteria-check {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 90px;
+}
+
+.listen-criteria-check input[type="checkbox"] {
+    accent-color: var(--accent);
+}
+
+.listen-criteria-select {
+    flex: 1;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    font-family: inherit;
+}
+
 /* === iOS safe area === */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
     .table-wrapper {

@@ -160,6 +160,37 @@
                         </div>
                         <div id="listenUnratedResult" class="listen-result hidden"></div>
                     </div>
+
+                    <!-- Bouton 2 : Écouter par critère -->
+                    <div class="listen-section">
+                        <h3 class="listen-section-title">Écouter par critère</h3>
+                        <p class="listen-section-desc">Filtrer par note — les albums non notés sont prioritaires</p>
+                        <div class="listen-section-filters listen-criteria-filters">
+                            <div class="listen-criteria-row">
+                                <label class="listen-criteria-check"><input type="checkbox" id="listenUseGout" checked> Goût</label>
+                                <select id="listenGoutVal" class="listen-criteria-select">
+                                    <option value="">Non noté</option>
+                                </select>
+                            </div>
+                            <div class="listen-criteria-row">
+                                <label class="listen-criteria-check"><input type="checkbox" id="listenUseAudio" checked> Audio</label>
+                                <select id="listenAudioVal" class="listen-criteria-select">
+                                    <option value="">Non noté</option>
+                                </select>
+                            </div>
+                            <div class="listen-criteria-row">
+                                <label class="listen-criteria-check"><input type="checkbox" id="listenUseEnergie" checked> Énergie</label>
+                                <select id="listenEnergieVal" class="listen-criteria-select">
+                                    <option value="">Non noté</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="listen-section-actions">
+                            <button id="listenShowCriteria" class="btn btn-primary">Affiche la sélection</button>
+                            <button id="listenRandomCriteria" class="btn btn-secondary">Choisi pour moi</button>
+                        </div>
+                        <div id="listenCriteriaResult" class="listen-result hidden"></div>
+                    </div>
                 </div>
             </div>
         </div>
