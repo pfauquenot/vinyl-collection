@@ -3127,6 +3127,8 @@ document.addEventListener('keydown', (e) => {
         } else if (!document.getElementById('backupModal').classList.contains('hidden')) {
             document.getElementById('backupModal').classList.add('hidden');
             document.body.style.overflow = '';
+        } else if (!listenModal.classList.contains('hidden')) {
+            closeListenModal();
         } else if (!tokenModal.classList.contains('hidden')) {
             tokenModal.classList.add('hidden');
         } else if (!document.getElementById('graph3dPopup').classList.contains('hidden')) {
@@ -3704,6 +3706,124 @@ document.getElementById('graph3dPopupIaBtn').addEventListener('click', () => {
     const iaText = document.getElementById('graph3dPopupIaText');
     iaText.classList.toggle('hidden');
 });
+
+// === Suggestions d'écoute ===
+const listenModal = document.getElementById('listenModal');
+const listenCatCheckboxes = document.getElementById('listenCatCheckboxes');
+const listenUnratedResult = document.getElementById('listenUnratedResult');
+
+// Bouton pour ouvrir la modale
+document.getElementById('listenBtn').addEventListener('click', () => {
+    populateListenCategories();
+    listenUnratedResult.classList.add('hidden');
+    listenModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+});
+
+// Fermer la modale
+document.querySelector('.listen-modal-overlay').addEventListener('click', closeListenModal);
+document.querySelector('.listen-modal-close').addEventListener('click', closeListenModal);
+
+function closeListenModal() {
+    listenModal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Remplir les checkboxes de rangements
+function populateListenCategories() {
+    // Extraire les catégories présentes dans la collection
+    const catsInCollection = new Set();
+    vinyls.forEach(v => {
+        const cats = v.categorie || [];
+        cats.forEach(c => catsInCollection.add(c));
+    });
+    const catList = [...catsInCollection].sort();
+
+    listenCatCheckboxes.innerHTML = '';
+    catList.forEach(cat => {
+        const label = document.createElement('label');
+        label.className = 'listen-cat-label';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = cat;
+        cb.checked = true;
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(' ' + cat));
+        listenCatCheckboxes.appendChild(label);
+    });
+}
+
+// Récupérer les albums non notés selon les filtres
+function getUnratedAlbums() {
+    const selectedCats = [...listenCatCheckboxes.querySelectorAll('input:checked')].map(cb => cb.value);
+    return vinyls.filter(v => {
+        // Pas de note : goût OU audio OU energie manquant
+        const unrated = !v.goût || !v.audio || !v.energie;
+        if (!unrated) return false;
+        // Filtre par rangement
+        if (selectedCats.length === 0) return true;
+        const cats = v.categorie || [];
+        return cats.some(c => selectedCats.includes(c));
+    });
+}
+
+// Afficher la sélection
+document.getElementById('listenShowUnrated').addEventListener('click', () => {
+    const albums = getUnratedAlbums();
+    renderListenResult(albums);
+});
+
+// Choisi pour moi — un album au hasard
+document.getElementById('listenRandomUnrated').addEventListener('click', () => {
+    const albums = getUnratedAlbums();
+    if (albums.length === 0) {
+        renderListenResult([]);
+        return;
+    }
+    const pick = albums[Math.floor(Math.random() * albums.length)];
+    renderListenResult([pick], true);
+});
+
+function renderListenResult(albums, isRandom) {
+    listenUnratedResult.classList.remove('hidden');
+    if (albums.length === 0) {
+        listenUnratedResult.innerHTML = '<p class="listen-empty">Aucun album trouvé pour ces critères.</p>';
+        return;
+    }
+    let html = '';
+    if (isRandom) {
+        html += '<p class="listen-result-count">Suggestion :</p>';
+    } else {
+        html += '<p class="listen-result-count">' + albums.length + ' album' + (albums.length > 1 ? 's' : '') + ' à noter :</p>';
+    }
+    html += '<div class="listen-result-grid">';
+    albums.forEach(v => {
+        const cover = v.coverUrl ? '<img src="' + esc(v.coverUrl) + '" alt="" class="listen-result-cover">' : '<div class="listen-result-nocover">♫</div>';
+        const missing = [];
+        if (!v.goût) missing.push('Goût');
+        if (!v.audio) missing.push('Audio');
+        if (!v.energie) missing.push('Énergie');
+        html += '<div class="listen-result-item" data-id="' + esc(v.id) + '">'
+            + cover
+            + '<div class="listen-result-info">'
+            + '<div class="listen-result-artist">' + esc(v.artiste || '') + '</div>'
+            + '<div class="listen-result-album">' + esc(v.album || '') + '</div>'
+            + '<div class="listen-result-missing">Manque : ' + missing.join(', ') + '</div>'
+            + '</div>'
+            + '</div>';
+    });
+    html += '</div>';
+    listenUnratedResult.innerHTML = html;
+
+    // Clic sur un album → ouvrir sa fiche
+    listenUnratedResult.querySelectorAll('.listen-result-item').forEach(el => {
+        el.addEventListener('click', () => {
+            const id = el.dataset.id;
+            closeListenModal();
+            openEdit(id);
+        });
+    });
+}
 
 // === Service Worker ===
 if ('serviceWorker' in navigator) {

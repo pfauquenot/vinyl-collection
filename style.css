@@ -2189,6 +2189,218 @@ header .btn-small:hover {
     color: var(--accent);
 }
 
+/* === Modale Suggestions d'écoute === */
+.listen-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.listen-modal.hidden {
+    display: none !important;
+}
+
+.listen-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.listen-modal-card {
+    position: relative;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 28px;
+    max-width: 600px;
+    width: 92%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    z-index: 1;
+}
+
+.listen-modal-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+}
+
+.listen-modal-close:hover {
+    color: var(--text);
+}
+
+.listen-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 20px 0;
+}
+
+.listen-modal-title .material-symbols-outlined {
+    color: var(--accent);
+    font-size: 1.4rem;
+}
+
+.listen-section {
+    background: var(--bg-input);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.listen-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 0 0 4px 0;
+}
+
+.listen-section-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0 0 12px 0;
+}
+
+.listen-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 6px;
+    display: block;
+}
+
+.listen-cat-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-bottom: 14px;
+}
+
+.listen-cat-label {
+    font-size: 0.8rem;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.listen-cat-label input[type="checkbox"] {
+    accent-color: var(--accent);
+}
+
+.listen-section-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.listen-section-actions .btn {
+    font-size: 0.85rem;
+    padding: 8px 18px;
+}
+
+.listen-result {
+    margin-top: 16px;
+}
+
+.listen-result-count {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 10px 0;
+}
+
+.listen-empty {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.listen-result-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.listen-result-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.listen-result-item:hover {
+    background: var(--bg-hover);
+}
+
+.listen-result-cover {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.listen-result-nocover {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-input);
+    border-radius: 4px;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.listen-result-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.listen-result-artist {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.listen-result-album {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.listen-result-missing {
+    font-size: 0.7rem;
+    color: var(--accent);
+    margin-top: 2px;
+}
+
 /* === iOS safe area === */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
     .table-wrapper {
