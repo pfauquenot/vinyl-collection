@@ -2275,36 +2275,36 @@ header .btn-small:hover {
 .listen-section {
     background: var(--bg-input);
     border-radius: var(--radius-sm);
-    padding: 16px;
+    padding: 20px;
     margin-bottom: 16px;
 }
 
-.listen-section-title {
-    font-size: 1rem;
+.listen-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 767px) {
+    .listen-columns {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+}
+
+.listen-col-title {
+    font-size: 0.9rem;
     font-weight: 600;
     color: var(--accent);
-    margin: 0 0 4px 0;
-}
-
-.listen-section-desc {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin: 0 0 12px 0;
-}
-
-.listen-label {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text);
-    margin-bottom: 6px;
     display: block;
+    margin-bottom: 10px;
 }
 
 .listen-cat-checkboxes {
     display: flex;
     flex-wrap: wrap;
     gap: 6px 12px;
-    margin-bottom: 14px;
 }
 
 .listen-cat-label {
@@ -2324,6 +2324,7 @@ header .btn-small:hover {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    justify-content: center;
 }
 
 .listen-section-actions .btn {

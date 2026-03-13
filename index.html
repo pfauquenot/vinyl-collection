@@ -156,30 +156,35 @@
                         </label>
                     </div>
 
-                    <!-- Filtres communs -->
+                    <!-- Filtres en 2 colonnes -->
                     <div class="listen-section">
-                        <div class="listen-section-filters">
-                            <label class="listen-label">Rangements :</label>
-                            <div id="listenCatCheckboxes" class="listen-cat-checkboxes"></div>
-                        </div>
-                        <div class="listen-section-filters listen-criteria-filters">
-                            <div class="listen-criteria-row">
-                                <label class="listen-criteria-check"><input type="checkbox" id="listenUseGout"> Goût</label>
-                                <select id="listenGoutVal" class="listen-criteria-select">
-                                    <option value="">Non noté</option>
-                                </select>
+                        <div class="listen-columns">
+                            <div class="listen-col">
+                                <label class="listen-col-title">Rangements</label>
+                                <div id="listenCatCheckboxes" class="listen-cat-checkboxes"></div>
                             </div>
-                            <div class="listen-criteria-row">
-                                <label class="listen-criteria-check"><input type="checkbox" id="listenUseAudio"> Audio</label>
-                                <select id="listenAudioVal" class="listen-criteria-select">
-                                    <option value="">Non noté</option>
-                                </select>
-                            </div>
-                            <div class="listen-criteria-row">
-                                <label class="listen-criteria-check"><input type="checkbox" id="listenUseEnergie"> Énergie</label>
-                                <select id="listenEnergieVal" class="listen-criteria-select">
-                                    <option value="">Non noté</option>
-                                </select>
+                            <div class="listen-col">
+                                <label class="listen-col-title">Qualité</label>
+                                <div class="listen-criteria-filters">
+                                    <div class="listen-criteria-row">
+                                        <label class="listen-criteria-check"><input type="checkbox" id="listenUseGout"> Goût</label>
+                                        <select id="listenGoutVal" class="listen-criteria-select">
+                                            <option value="">Non noté</option>
+                                        </select>
+                                    </div>
+                                    <div class="listen-criteria-row">
+                                        <label class="listen-criteria-check"><input type="checkbox" id="listenUseAudio"> Audio</label>
+                                        <select id="listenAudioVal" class="listen-criteria-select">
+                                            <option value="">Non noté</option>
+                                        </select>
+                                    </div>
+                                    <div class="listen-criteria-row">
+                                        <label class="listen-criteria-check"><input type="checkbox" id="listenUseEnergie"> Énergie</label>
+                                        <select id="listenEnergieVal" class="listen-criteria-select">
+                                            <option value="">Non noté</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="listen-section-actions">
