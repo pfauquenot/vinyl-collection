@@ -49,6 +49,12 @@
                 <button id="manageStylesBtn" class="btn btn-secondary guest-hidden" title="Gérer les genres"><span class="material-symbols-outlined">sell</span> Genres</button>
                 <button id="bulkDeleteBtn" class="btn btn-danger hidden guest-hidden">Supprimer la sélection</button>
 
+                <div class="view-toggle" id="viewToggleMobile">
+                    <button id="viewTable" class="btn btn-small view-btn" title="Vue tableau">&#9776;</button>
+                    <button id="viewGallery" class="btn btn-small view-btn active" title="Vue galerie">&#9638;</button>
+                    <button id="view3D" class="btn btn-small view-btn" title="Vue 3D"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">hub</span></button>
+                    <button id="listenBtn" class="btn btn-small view-btn" title="Suggestions d'écoute"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">headphones</span></button>
+                </div>
                 <!-- Menu sandwich -->
                 <div class="hamburger-menu" id="hamburgerMenu">
                     <button id="hamburgerBtn" class="btn btn-secondary hamburger-btn" title="Plus d'options"><span class="material-symbols-outlined">menu</span></button>
@@ -113,12 +119,6 @@
             </select>
             <button id="sortDir" class="btn btn-small" title="Inverser le tri">&#8593;</button>
             <button id="resetFilters" class="btn btn-small btn-reset" title="Réinitialiser les filtres">&#10005;</button>
-            <div class="view-toggle">
-                <button id="viewTable" class="btn btn-small view-btn" title="Vue tableau">&#9776;</button>
-                <button id="viewGallery" class="btn btn-small view-btn active" title="Vue galerie">&#9638;</button>
-                <button id="view3D" class="btn btn-small view-btn" title="Vue 3D"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">hub</span></button>
-                <button id="listenBtn" class="btn btn-small view-btn" title="Suggestions d'écoute"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">headphones</span></button>
-            </div>
         </div>
         </header>
 
@@ -146,25 +146,22 @@
                 <button class="listen-modal-close">&times;</button>
                 <h2 class="listen-modal-title"><span class="material-symbols-outlined">headphones</span> Suggestions d'écoute</h2>
                 <div class="listen-modal-body">
-                    <!-- Bouton 1 : Albums pas encore notés -->
+                    <!-- Sélection du périmètre -->
+                    <div class="listen-scope-toggle">
+                        <label class="listen-scope-option">
+                            <input type="radio" name="listenScope" value="unrated" checked> Albums sans note (Goût, Audio ou Énergie)
+                        </label>
+                        <label class="listen-scope-option">
+                            <input type="radio" name="listenScope" value="all"> Tous les disques
+                        </label>
+                    </div>
+
+                    <!-- Filtres communs -->
                     <div class="listen-section">
-                        <h3 class="listen-section-title">Albums pas encore notés</h3>
-                        <p class="listen-section-desc">Albums sans note Goût, Audio ou Énergie</p>
                         <div class="listen-section-filters">
                             <label class="listen-label">Rangements :</label>
                             <div id="listenCatCheckboxes" class="listen-cat-checkboxes"></div>
                         </div>
-                        <div class="listen-section-actions">
-                            <button id="listenShowUnrated" class="btn btn-primary">Affiche la sélection</button>
-                            <button id="listenRandomUnrated" class="btn btn-secondary">Choisi pour moi</button>
-                        </div>
-                        <div id="listenUnratedResult" class="listen-result hidden"></div>
-                    </div>
-
-                    <!-- Bouton 2 : Écouter par critère -->
-                    <div class="listen-section">
-                        <h3 class="listen-section-title">Écouter par critère</h3>
-                        <p class="listen-section-desc">Filtrer par note — les albums non notés sont prioritaires</p>
                         <div class="listen-section-filters listen-criteria-filters">
                             <div class="listen-criteria-row">
                                 <label class="listen-criteria-check"><input type="checkbox" id="listenUseGout"> Goût</label>
@@ -186,10 +183,10 @@
                             </div>
                         </div>
                         <div class="listen-section-actions">
-                            <button id="listenShowCriteria" class="btn btn-primary">Affiche la sélection</button>
-                            <button id="listenRandomCriteria" class="btn btn-secondary">Choisi pour moi</button>
+                            <button id="listenShowSelection" class="btn btn-primary">Affiche la sélection</button>
+                            <button id="listenRandomSelection" class="btn btn-secondary">Choisi pour moi</button>
                         </div>
-                        <div id="listenCriteriaResult" class="listen-result hidden"></div>
+                        <div id="listenResult" class="listen-result hidden"></div>
                     </div>
                 </div>
             </div>

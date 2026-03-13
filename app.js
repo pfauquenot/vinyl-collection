@@ -3710,9 +3710,7 @@ document.getElementById('graph3dPopupIaBtn').addEventListener('click', () => {
 // === Suggestions d'écoute ===
 const listenModal = document.getElementById('listenModal');
 const listenCatCheckboxes = document.getElementById('listenCatCheckboxes');
-const listenUnratedResult = document.getElementById('listenUnratedResult');
-
-const listenCriteriaResult = document.getElementById('listenCriteriaResult');
+const listenResult = document.getElementById('listenResult');
 
 // Bouton pour ouvrir la modale
 document.getElementById('listenBtn').addEventListener('click', () => {
@@ -3721,8 +3719,8 @@ document.getElementById('listenBtn').addEventListener('click', () => {
     document.getElementById('listenUseGout').checked = false;
     document.getElementById('listenUseAudio').checked = false;
     document.getElementById('listenUseEnergie').checked = false;
-    listenUnratedResult.classList.add('hidden');
-    listenCriteriaResult.classList.add('hidden');
+    document.querySelector('input[name="listenScope"][value="unrated"]').checked = true;
+    listenResult.classList.add('hidden');
     listenModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 });
@@ -3738,7 +3736,6 @@ function closeListenModal() {
 
 // Remplir les checkboxes de rangements
 function populateListenCategories() {
-    // Extraire les catégories présentes dans la collection
     const catsInCollection = new Set();
     vinyls.forEach(v => {
         const cats = v.categorie || [];
@@ -3761,45 +3758,11 @@ function populateListenCategories() {
     });
 }
 
-// Récupérer les albums non notés selon les filtres
-function getUnratedAlbums() {
-    const selectedCats = [...listenCatCheckboxes.querySelectorAll('input:checked')].map(cb => cb.value);
-    return vinyls.filter(v => {
-        // Pas de note : goût OU audio OU energie manquant
-        const unrated = !v.goût || !v.audio || !v.energie;
-        if (!unrated) return false;
-        // Filtre par rangement — rien coché = rien affiché
-        if (selectedCats.length === 0) return false;
-        const cats = v.categorie || [];
-        return cats.some(c => selectedCats.includes(c));
-    });
-}
-
-// Afficher la sélection (section 1)
-document.getElementById('listenShowUnrated').addEventListener('click', () => {
-    const albums = getUnratedAlbums();
-    renderListenResult(listenUnratedResult, albums);
-});
-
-// Choisi pour moi (section 1)
-document.getElementById('listenRandomUnrated').addEventListener('click', () => {
-    const albums = getUnratedAlbums();
-    if (albums.length === 0) {
-        renderListenResult(listenUnratedResult, []);
-        return;
-    }
-    const pick = albums[Math.floor(Math.random() * albums.length)];
-    renderListenResult(listenUnratedResult, [pick], true);
-});
-
-// === Section 2 : Écouter par critère ===
-
 function populateListenCriteriaSelects() {
     const goutSelect = document.getElementById('listenGoutVal');
     const audioSelect = document.getElementById('listenAudioVal');
     const energieSelect = document.getElementById('listenEnergieVal');
 
-    // Remplir uniquement si pas déjà fait
     if (goutSelect.options.length <= 1) {
         Object.entries(GOUT_LABELS).forEach(([k, v]) => {
             const opt = document.createElement('option');
@@ -3825,13 +3788,15 @@ function populateListenCriteriaSelects() {
         });
     }
 
-    // Par défaut : "Non noté" sélectionné
     goutSelect.value = '';
     audioSelect.value = '';
     energieSelect.value = '';
 }
 
-function getCriteriaAlbums() {
+// Récupérer les albums selon le périmètre et les filtres
+function getListenAlbums() {
+    const scope = document.querySelector('input[name="listenScope"]:checked').value;
+    const selectedCats = [...listenCatCheckboxes.querySelectorAll('input:checked')].map(cb => cb.value);
     const useGout = document.getElementById('listenUseGout').checked;
     const useAudio = document.getElementById('listenUseAudio').checked;
     const useEnergie = document.getElementById('listenUseEnergie').checked;
@@ -3839,11 +3804,18 @@ function getCriteriaAlbums() {
     const audioVal = document.getElementById('listenAudioVal').value;
     const energieVal = document.getElementById('listenEnergieVal').value;
 
-    // Au moins un critère actif
-    if (!useGout && !useAudio && !useEnergie) return [];
-
-    // Filtrer les albums correspondants
-    const matching = vinyls.filter(v => {
+    return vinyls.filter(v => {
+        // Filtre périmètre : albums sans note ou tous
+        if (scope === 'unrated') {
+            const unrated = !v.goût || !v.audio || !v.energie;
+            if (!unrated) return false;
+        }
+        // Filtre rangements (rien coché = tous)
+        if (selectedCats.length > 0) {
+            const cats = v.categorie || [];
+            if (!cats.some(c => selectedCats.includes(c))) return false;
+        }
+        // Filtres critères
         if (useGout) {
             if (goutVal === '') { if (v.goût) return false; }
             else { if (v.goût !== goutVal) return false; }
@@ -3857,36 +3829,31 @@ function getCriteriaAlbums() {
             else { if (v.energie !== energieVal) return false; }
         }
         return true;
-    });
-
-    // Tri : albums non notés en priorité (ceux qui ont le plus de notes manquantes en premier)
-    matching.sort((a, b) => {
+    }).sort((a, b) => {
+        // Albums non notés en priorité
         const missingA = (!a.goût ? 1 : 0) + (!a.audio ? 1 : 0) + (!a.energie ? 1 : 0);
         const missingB = (!b.goût ? 1 : 0) + (!b.audio ? 1 : 0) + (!b.energie ? 1 : 0);
         return missingB - missingA;
     });
-
-    return matching;
 }
 
-// Afficher la sélection (section 2)
-document.getElementById('listenShowCriteria').addEventListener('click', () => {
-    const albums = getCriteriaAlbums();
-    renderListenResult(listenCriteriaResult, albums, false, true);
+// Afficher la sélection
+document.getElementById('listenShowSelection').addEventListener('click', () => {
+    const albums = getListenAlbums();
+    renderListenResult(listenResult, albums, false, true);
 });
 
-// Choisi pour moi (section 2)
-document.getElementById('listenRandomCriteria').addEventListener('click', () => {
-    const albums = getCriteriaAlbums();
+// Choisi pour moi
+document.getElementById('listenRandomSelection').addEventListener('click', () => {
+    const albums = getListenAlbums();
     if (albums.length === 0) {
-        renderListenResult(listenCriteriaResult, []);
+        renderListenResult(listenResult, []);
         return;
     }
-    // Priorité aléatoire parmi les non notés si possible
     const unrated = albums.filter(v => !v.goût || !v.audio || !v.energie);
     const pool = unrated.length > 0 ? unrated : albums;
     const pick = pool[Math.floor(Math.random() * pool.length)];
-    renderListenResult(listenCriteriaResult, [pick], true, true);
+    renderListenResult(listenResult, [pick], true, true);
 });
 
 // === Rendu des résultats (partagé) ===
