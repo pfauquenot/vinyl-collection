@@ -481,7 +481,6 @@ header .btn-small:hover {
 .view-toggle {
     display: flex;
     gap: 2px;
-    margin-left: auto;
 }
 
 .view-btn {
@@ -504,10 +503,10 @@ header .btn-small:hover {
 
 /* === Gallery === */
 .gallery {
-    padding: 16px 20px 100px;
+    padding: 16px 8px 100px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
 }
 
 .gallery-card {
@@ -613,6 +612,25 @@ header .btn-small:hover {
         padding: 16px 32px 60px;
         grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
         gap: 16px;
+    }
+}
+
+/* Mobile: gallery card info plus compact */
+@media (max-width: 767px) {
+    .gallery-card-info {
+        padding: 4px 6px;
+    }
+    .gallery-card-info .g-artist {
+        font-size: 0.7rem;
+    }
+    .gallery-card-info .g-album {
+        font-size: 0.65rem;
+    }
+    .gallery-card-info .g-year-row {
+        display: none;
+    }
+    .gallery-card-info .g-styles {
+        display: none;
     }
 }
 
@@ -2445,6 +2463,26 @@ header .btn-small:hover {
     background: var(--bg-card);
     color: var(--text);
     font-family: inherit;
+}
+
+.listen-scope-toggle {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.listen-scope-option {
+    font-size: 0.85rem;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.listen-scope-option input[type="radio"] {
+    accent-color: var(--accent);
 }
 
 /* === iOS safe area === */
